@@ -161,3 +161,7 @@ node Prueba.js
 
 El script no usa una base de datos: todos los datos viven en memoria y se
 reinician cada vez que se ejecuta.
+
+## Licencia
+
+Este proyecto se distribuye bajo la licencia [MIT](./LICENSE).
