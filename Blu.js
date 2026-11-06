@@ -1,6 +1,6 @@
 class Producto {
-  constructor(id, nombre, categoria, precio, stock, porciones, precioVaso) {
-    this.id = id;
+  constructor(nombre, categoria, precio, stock, porciones, precioVaso) {
+    this.id = "";
     this.nombre = nombre;
     this.categoria = categoria;
     this.precio = precio;
@@ -16,9 +16,8 @@ class Producto {
     );
   }
 
-  modificar(nombre, categoria, precio, porciones, precioVaso) {
+  modificar(nombre, precio, porciones, precioVaso) {
     this.nombre = nombre;
-    this.categoria = categoria;
     this.precio = precio;
     this.porciones = porciones;
     this.precioVaso = precioVaso;
@@ -94,8 +93,8 @@ class Producto {
 }
 
 class Combo {
-  constructor(id, nombre, precio, componentes) {
-    this.id = id;
+  constructor(nombre, precio, componentes) {
+    this.id = "";
     this.nombre = nombre;
     this.precio = precio;
     this.componentes = componentes;
@@ -167,24 +166,70 @@ class Almacen {
   constructor() {
     this.productos = [];
     this.combos = [];
+    this.letraCombos = "K";
+    this.ultimoCombo = 0;
+    this.categorias = [
+      { nombre: "Botellas", letra: "B", ultimo: 0 },
+      { nombre: "Cervezas", letra: "C", ultimo: 0 },
+      { nombre: "Mezcladores", letra: "M", ultimo: 0 },
+      { nombre: "Insumos", letra: "I", ultimo: 0 },
+    ];
+  }
+
+  agregarCategoria(nombre, letra) {
+    if (this.categorias.some((c) => c.nombre === nombre)) {
+      console.log(`Ya existe la categoría ${nombre}`);
+      return false;
+    }
+    if (letra.length !== 1) {
+      console.log("La letra de la categoría debe ser un solo carácter");
+      return false;
+    }
+    if (letra === this.letraCombos) {
+      console.log(`La letra ${letra} está reservada para los combos`);
+      return false;
+    }
+    if (this.categorias.some((c) => c.letra === letra)) {
+      console.log(`La letra ${letra} ya la usa otra categoría`);
+      return false;
+    }
+    this.categorias.push({ nombre: nombre, letra: letra, ultimo: 0 });
+    return true;
+  }
+
+  verCategorias() {
+    this.categorias.forEach((c) => {
+      const cantidad = this.productos.filter(
+        (p) => p.categoria === c.nombre
+      ).length;
+      console.log(`${c.letra} - ${c.nombre} | Productos: ${cantidad}`);
+    });
+    console.log(`${this.letraCombos} - Combos | Combos: ${this.combos.length}`);
   }
 
   agregarProducto(producto) {
-    if (this.productos.some((p) => p.id === producto.id)) {
-      console.log(`Ya existe un producto con el id ${producto.id}`);
+    const categoria = this.categorias.find((c) => c.nombre === producto.categoria);
+    if (categoria === undefined) {
+      console.log(`La categoría ${producto.categoria} no existe en el almacén`);
       return false;
     }
+    if (this.productos.some((p) => p === producto)) {
+      console.log(`El producto ${producto.nombre} ya fue agregado`);
+      return false;
+    }
+    categoria.ultimo = categoria.ultimo + 1;
+    producto.id = categoria.letra + categoria.ultimo;
     this.productos.push(producto);
     return true;
   }
 
   agregarCombo(combo) {
-    if (this.combos.some((c) => c.id === combo.id)) {
-      console.log(`Ya existe un combo con el id ${combo.id}`);
+    if (this.combos.some((c) => c === combo)) {
+      console.log(`El combo ${combo.nombre} ya fue agregado`);
       return false;
     }
     const hayNoRegistrados = combo.componentes.some(
-      (c) => this.buscarProducto(c.producto.id) === undefined
+      (c) => !this.productos.some((p) => p === c.producto)
     );
     if (hayNoRegistrados) {
       console.log(
@@ -192,6 +237,8 @@ class Almacen {
       );
       return false;
     }
+    this.ultimoCombo = this.ultimoCombo + 1;
+    combo.id = this.letraCombos + this.ultimoCombo;
     this.combos.push(combo);
     return true;
   }
@@ -210,8 +257,9 @@ class Almacen {
       console.log(`No existe un producto con el id ${id}`);
       return false;
     }
+    const producto = this.productos[posicion];
     const comboQueLoUsa = this.combos.find((c) =>
-      c.componentes.some((k) => k.producto.id === id)
+      c.componentes.some((k) => k.producto === producto)
     );
     if (comboQueLoUsa !== undefined) {
       console.log(`No se puede eliminar: lo usa el combo ${comboQueLoUsa.nombre}`);
