@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Estilos') ?>
+  <style>
+    .bloqueo { background: #fce8e6; color: #c5221f; padding: 12px; border-radius: 6px; margin: 12px 0; font-size: 13px; }
+    .advertencia { background: #fef7e0; color: #b06000; padding: 12px; border-radius: 6px; margin: 12px 0; font-size: 13px; }
+    .check-stock { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; }
+    .check-stock input { margin-top: 3px; }
+    .check-stock label { margin: 0; font-weight: normal; font-size: 13px; cursor: pointer; }
+    .btn-peligro { background: #c5221f; color: #fff; }
+    .btn-peligro:hover:not(:disabled) { background: #a01a17; }
+  </style>
+</head>
+<body>
+  <h2>Eliminar Producto</h2>
+
+  <div class="campo">
+    <label for="producto">Producto a eliminar</label>
+    <select id="producto" onchange="actualizar()"><option>Cargando...</option></select>
+  </div>
+
+  <div id="zonaInfo"></div>
+
+  <div class="mensaje" id="mensaje"></div>
+
+  <div class="botones">
+    <button class="btn-cancelar" onclick="google.script.host.close()">Cancelar</button>
+    <button class="btn-peligro" id="btnEliminar" onclick="eliminar()" disabled>Eliminar Producto</button>
+  </div>
+
+  <script>
+    let productos = [];
+
+    google.script.run
+      .withSuccessHandler(function(datos) {
+        productos = datos.productos;
+        document.getElementById('producto').innerHTML = productos.length
+          ? productos.map(p => `<option value="${p.id}">${p.id} - ${p.nombre} (stock: ${p.stock})</option>`).join('')
+          : '<option value="">No hay productos registrados</option>';
+        actualizar();
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('zonaInfo').innerHTML = '<div class="bloqueo">Error al cargar: ' + err.message + '</div>';
+      })
+      .getDatosParaEliminarProducto();
+
+    function actualizar() {
+      const id = document.getElementById('producto').value;
+      const p = productos.find(x => x.id === id);
+      const zona = document.getElementById('zonaInfo');
+      const btn = document.getElementById('btnEliminar');
+      if (!p) { zona.innerHTML = ''; btn.disabled = true; return; }
+
+      let html = `<div class="info">
+        Categoría: <strong>${p.categoria}</strong><br>
+        Precio: <strong>${p.precio} Bs</strong><br>
+        Stock: <strong>${p.stock} unidad(es)</strong>${p.vasosSueltos > 0 ? ` + ${p.vasosSueltos} vaso(s) suelto(s)` : ''}<br>
+        Valor en inventario: <strong>${p.valorInventario} Bs</strong>
+      </div>`;
+
+      let bloqueado = false;
+
+      if (p.combosQueLoUsan.length > 0) {
+        bloqueado = true;
+        html += `<div class="bloqueo">
+          <strong>⛔ Bloqueado:</strong> este producto se usa en ${p.combosQueLoUsan.length} combo(s).<br>
+          Debes eliminar primero esos combos:<br>
+          ${p.combosQueLoUsan.map(n => '• ' + n).join('<br>')}
+        </div>`;
+      }
+
+      if (p.stock > 0 && !bloqueado) {
+        html += `<div class="advertencia">
+          ⚠️ Este producto tiene <strong>${p.stock} unidad(es)</strong> en stock (valor ${p.valorInventario} Bs).
+          Al eliminarlo, ese valor desaparecerá del inventario y no se podrá recuperar.
+          <div class="check-stock">
+            <input type="checkbox" id="confirmoStock" onchange="actualizarBoton()">
+            <label for="confirmoStock">Entiendo que se perderá el stock permanentemente.</label>
+          </div>
+        </div>`;
+      }
+
+      zona.innerHTML = html;
+      if (bloqueado) { btn.disabled = true; return; }
+      actualizarBoton();
+    }
+
+    function actualizarBoton() {
+      const id = document.getElementById('producto').value;
+      const p = productos.find(x => x.id === id);
+      if (!p) return;
+      const btn = document.getElementById('btnEliminar');
+      const check = document.getElementById('confirmoStock');
+      if (p.stock > 0) btn.disabled = !(check && check.checked);
+      else btn.disabled = false;
+    }
+
+    function eliminar() {
+      const id = document.getElementById('producto').value;
+      const p = productos.find(x => x.id === id);
+      if (!p) return;
+      if (!confirm(`¿Eliminar definitivamente ${p.id} - ${p.nombre}?`)) return;
+
+      const check = document.getElementById('confirmoStock');
+      const confirmoStock = p.stock > 0 ? !!(check && check.checked) : true;
+      const btn = document.getElementById('btnEliminar');
+      const msg = document.getElementById('mensaje');
+      btn.disabled = true;
+      btn.textContent = 'Eliminando...';
+      msg.className = 'mensaje';
+      msg.style.display = 'none';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          msg.textContent = res.mensaje;
+          msg.className = 'mensaje ' + (res.ok ? 'exito' : 'error');
+          if (res.ok) setTimeout(() => google.script.host.close(), 1500);
+          else { btn.disabled = false; btn.textContent = 'Eliminar Producto'; }
+        })
+        .withFailureHandler(function(err) {
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'mensaje error';
+          btn.disabled = false;
+          btn.textContent = 'Eliminar Producto';
+        })
+        .ejecutarEliminarProductoDesdeDialogo(id, confirmoStock);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Estilos') ?>
+</head>
+<body>
+  <h2>Vender Combo</h2>
+  <div class="campo">
+    <label for="combo">Combo</label>
+    <select id="combo" onchange="actualizar()"><option>Cargando...</option></select>
+  </div>
+  <div class="campo">
+    <label for="cantidad">Cantidad</label>
+    <input type="number" id="cantidad" value="1" min="1" onchange="actualizar()" oninput="actualizar()">
+  </div>
+  <div class="info" id="info">Cargando datos...</div>
+  <div class="mensaje" id="mensaje"></div>
+  <div class="botones">
+    <button class="btn-cancelar" onclick="google.script.host.close()">Cancelar</button>
+    <button class="btn-primario" id="btnVender" onclick="vender()" disabled>Vender</button>
+  </div>
+  <script>
+    let combos = [];
+
+    google.script.run
+      .withSuccessHandler(function(datos) {
+        combos = datos.combos;
+        document.getElementById('combo').innerHTML = combos.length
+          ? combos.map(c => `<option value="${c.id}">${c.id} - ${c.nombre} (${c.precio} Bs)</option>`).join('')
+          : '<option value="">No hay combos disponibles</option>';
+        actualizar();
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('info').textContent = 'Error al cargar: ' + err.message;
+      })
+      .getDatosParaVenderCombo();
+
+    function actualizar() {
+      const idCombo = document.getElementById('combo').value;
+      const cantidad = parseInt(document.getElementById('cantidad').value) || 0;
+      const combo = combos.find(c => c.id === idCombo);
+      const info = document.getElementById('info');
+      const btn = document.getElementById('btnVender');
+      if (!combo || cantidad <= 0) {
+        info.textContent = 'Selecciona un combo y una cantidad válida.';
+        btn.disabled = true;
+        return;
+      }
+      const total = cantidad * combo.precio;
+      let html = `Combos disponibles: <strong>${combo.disponibles}</strong><br>Total a cobrar: <strong>${total} Bs</strong>`;
+      if (cantidad > combo.disponibles) {
+        html += `<br><span style="color:#c5221f">Stock insuficiente (solo hay ${combo.disponibles}).</span>`;
+        btn.disabled = true;
+      } else {
+        btn.disabled = false;
+      }
+      info.innerHTML = html;
+    }
+
+    function vender() {
+      const idCombo = document.getElementById('combo').value;
+      const cantidad = parseInt(document.getElementById('cantidad').value);
+      const btn = document.getElementById('btnVender');
+      const msg = document.getElementById('mensaje');
+      btn.disabled = true;
+      btn.textContent = 'Vendiendo...';
+      msg.className = 'mensaje';
+      msg.style.display = 'none';
+      google.script.run
+        .withSuccessHandler(function(res) {
+          msg.textContent = res.mensaje;
+          msg.className = 'mensaje ' + (res.ok ? 'exito' : 'error');
+          if (res.ok) {
+            setTimeout(() => google.script.host.close(), 1500);
+          } else {
+            btn.disabled = false;
+            btn.textContent = 'Vender';
+          }
+        })
+        .withFailureHandler(function(err) {
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'mensaje error';
+          btn.disabled = false;
+          btn.textContent = 'Vender';
+        })
+        .ejecutarVentaComboDesdeDialogo(idCombo, cantidad);
+    }
+  </script>
+</body>
+</html>

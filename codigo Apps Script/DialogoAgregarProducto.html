@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Estilos') ?>
+</head>
+<body>
+  <h2>Agregar Producto</h2>
+
+  <div class="campo">
+    <label for="nombre">Nombre del producto</label>
+    <input type="text" id="nombre" placeholder="Ej: Ron Bacardí" oninput="actualizar()">
+  </div>
+
+  <div class="campo">
+    <label for="categoria">Categoría</label>
+    <select id="categoria" onchange="actualizar()">
+      <option>Cargando...</option>
+    </select>
+  </div>
+
+  <div class="campo">
+    <label for="precio">Precio por botella/unidad (Bs)</label>
+    <input type="number" id="precio" min="0" step="0.01" value="0" oninput="actualizar()">
+  </div>
+
+  <div class="campo">
+    <label for="stock">Stock inicial (botellas/unidades)</label>
+    <input type="number" id="stock" min="0" value="0" oninput="actualizar()">
+  </div>
+
+  <div class="campo">
+    <label for="porciones">Porciones por botella (0 si no se vende por vaso)</label>
+    <input type="number" id="porciones" min="0" value="0" oninput="actualizar()">
+  </div>
+
+  <div class="campo">
+    <label for="precioVaso">Precio por vaso (Bs, 0 si no aplica)</label>
+    <input type="number" id="precioVaso" min="0" step="0.01" value="0" oninput="actualizar()">
+  </div>
+
+  <div class="info" id="info">Cargando categorías...</div>
+
+  <div class="mensaje" id="mensaje"></div>
+
+  <div class="botones">
+    <button class="btn-cancelar" onclick="google.script.host.close()">Cancelar</button>
+    <button class="btn-primario" id="btnGuardar" onclick="guardar()" disabled>Guardar</button>
+  </div>
+
+  <script>
+    let categorias = [];
+
+    google.script.run
+      .withSuccessHandler(function(datos) {
+        categorias = datos.categorias;
+        const sel = document.getElementById('categoria');
+        if (categorias.length === 0) {
+          sel.innerHTML = '<option value="">No hay categorías disponibles</option>';
+        } else {
+          sel.innerHTML = categorias
+            .map(c => `<option value="${c.nombre}" data-letra="${c.letra}" data-siguiente="${c.ultimo + 1}">${c.nombre} (${c.letra})</option>`)
+            .join('');
+        }
+        actualizar();
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('info').textContent = 'Error al cargar categorías: ' + err.message;
+      })
+      .getDatosParaAgregarProducto();
+
+    function actualizar() {
+      const nombre = document.getElementById('nombre').value.trim();
+      const sel = document.getElementById('categoria');
+      const opt = sel.options[sel.selectedIndex];
+      const precio = parseFloat(document.getElementById('precio').value) || 0;
+      const stock = parseInt(document.getElementById('stock').value) || 0;
+      const porciones = parseInt(document.getElementById('porciones').value) || 0;
+      const precioVaso = parseFloat(document.getElementById('precioVaso').value) || 0;
+      const info = document.getElementById('info');
+      const btn = document.getElementById('btnGuardar');
+
+      if (!opt || !opt.value) {
+        info.textContent = 'No hay categorías para asignar.';
+        btn.disabled = true;
+        return;
+      }
+
+      const idPreview = opt.value ? (opt.dataset.letra + opt.dataset.siguiente) : '?';
+      let html = `Categoría: <strong>${opt.value}</strong> · ID que se asignará: <strong>${idPreview}</strong>`;
+      if (porciones > 0 && precioVaso > 0) {
+        html += `<br>Se venderá por vaso: <strong>${porciones} porciones</strong> a <strong>${precioVaso} Bs</strong> cada uno.`;
+      } else if (porciones > 0 || precioVaso > 0) {
+        html += `<br><span style="color:#c5221f">Si va a venderse por vaso, debes completar porciones Y precio vaso (ambos > 0).</span>`;
+      } else {
+        html += `<br>Producto sin venta por vaso (botellas/unidades completas).`;
+      }
+      info.innerHTML = html;
+
+      const valido = nombre.length > 0 && precio >= 0 && stock >= 0 &&
+        ((porciones === 0 && precioVaso === 0) || (porciones > 0 && precioVaso > 0));
+      btn.disabled = !valido;
+    }
+
+    function guardar() {
+      const nombre = document.getElementById('nombre').value.trim();
+      const categoria = document.getElementById('categoria').value;
+      const precio = parseFloat(document.getElementById('precio').value) || 0;
+      const stock = parseInt(document.getElementById('stock').value) || 0;
+      const porciones = parseInt(document.getElementById('porciones').value) || 0;
+      const precioVaso = parseFloat(document.getElementById('precioVaso').value) || 0;
+      const btn = document.getElementById('btnGuardar');
+      const msg = document.getElementById('mensaje');
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
+      msg.className = 'mensaje';
+      msg.style.display = 'none';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          msg.textContent = res.mensaje;
+          msg.className = 'mensaje ' + (res.ok ? 'exito' : 'error');
+          if (res.ok) {
+            setTimeout(() => google.script.host.close(), 1500);
+          } else {
+            btn.disabled = false;
+            btn.textContent = 'Guardar';
+          }
+        })
+        .withFailureHandler(function(err) {
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'mensaje error';
+          btn.disabled = false;
+          btn.textContent = 'Guardar';
+        })
+        .ejecutarAgregarProductoDesdeDialogo(nombre, categoria, precio, stock, porciones, precioVaso);
+    }
+  </script>
+</body>
+</html>

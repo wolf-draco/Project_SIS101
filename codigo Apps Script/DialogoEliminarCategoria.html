@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Estilos') ?>
+  <style>
+    .advertencia { background: #fef7e0; color: #b06000; padding: 12px; border-radius: 6px; margin: 12px 0; font-size: 13px; }
+    .btn-peligro { background: #c5221f; color: #fff; }
+    .btn-peligro:hover:not(:disabled) { background: #a01a17; }
+    .lista-afectados { font-size: 12px; background: #f8f9fa; padding: 8px 10px; border-radius: 4px; margin-top: 6px; max-height: 150px; overflow-y: auto; }
+    .lista-afectados div { padding: 3px 0; border-bottom: 1px solid #e8eaed; }
+    .lista-afectados div:last-child { border-bottom: none; }
+    .grupo { margin-top: 10px; }
+    .grupo-titulo { font-weight: 600; color: #3c4043; margin-bottom: 4px; font-size: 13px; }
+    .input-confirm { margin-top: 12px; }
+    .input-confirm label { color: #c5221f; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h2>Eliminar Categoría</h2>
+
+  <div class="campo">
+    <label for="categoria">Categoría a eliminar</label>
+    <select id="categoria" onchange="actualizar()"><option>Cargando...</option></select>
+  </div>
+
+  <div id="zonaInfo"></div>
+
+  <div class="input-confirm" id="zonaConfirm" style="display:none">
+    <label for="confirmacion">Escribe el nombre exacto de la categoría para confirmar:</label>
+    <input type="text" id="confirmacion" oninput="actualizarBoton()">
+  </div>
+
+  <div class="mensaje" id="mensaje"></div>
+
+  <div class="botones">
+    <button class="btn-cancelar" onclick="google.script.host.close()">Cancelar</button>
+    <button class="btn-peligro" id="btnEliminar" onclick="eliminar()" disabled>Eliminar Categoría</button>
+  </div>
+
+  <script>
+    let categorias = [];
+
+    google.script.run
+      .withSuccessHandler(function(datos) {
+        categorias = datos.categorias;
+        document.getElementById('categoria').innerHTML = categorias.length
+          ? categorias.map(c => `<option value="${c.nombre}">${c.letra} - ${c.nombre} (${c.productos.length} productos)</option>`).join('')
+          : '<option value="">No hay categorías</option>';
+        actualizar();
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('zonaInfo').innerHTML = '<div class="advertencia">Error al cargar: ' + err.message + '</div>';
+      })
+      .getDatosParaEliminarCategoria();
+
+    function actualizar() {
+      const nombre = document.getElementById('categoria').value;
+      const c = categorias.find(x => x.nombre === nombre);
+      const zona = document.getElementById('zonaInfo');
+      const zonaConf = document.getElementById('zonaConfirm');
+      if (!c) { zona.innerHTML = ''; zonaConf.style.display = 'none'; document.getElementById('btnEliminar').disabled = true; return; }
+
+      let html = `<div class="advertencia">
+        ⚠️ <strong>Vas a eliminar la categoría "${c.nombre}" (letra ${c.letra}).</strong><br>
+        Se eliminarán <strong>${c.productos.length} producto(s)</strong> y <strong>${c.combos.length} combo(s)</strong>.
+      </div>`;
+
+      if (c.productos.length > 0) {
+        html += `<div class="grupo">
+          <div class="grupo-titulo">📦 Productos que se eliminarán:</div>
+          <div class="lista-afectados">
+            ${c.productos.map(p => `<div><strong>${p.id}</strong> ${p.nombre} — stock ${p.stock}, precio ${p.precio} Bs</div>`).join('')}
+          </div>
+        </div>`;
+      }
+
+      if (c.combos.length > 0) {
+        html += `<div class="grupo">
+          <div class="grupo-titulo">🎁 Combos que se eliminarán (usaban estos productos):</div>
+          <div class="lista-afectados">
+            ${c.combos.map(co => `<div><strong>${co.id}</strong> ${co.nombre} — ${co.precio} Bs</div>`).join('')}
+          </div>
+        </div>`;
+      }
+
+      zona.innerHTML = html;
+      zonaConf.style.display = 'block';
+      document.getElementById('confirmacion').value = '';
+      document.getElementById('confirmacion').placeholder = c.nombre;
+      document.getElementById('btnEliminar').disabled = true;
+    }
+
+    function actualizarBoton() {
+      const nombre = document.getElementById('categoria').value;
+      const c = categorias.find(x => x.nombre === nombre);
+      if (!c) return;
+      const conf = document.getElementById('confirmacion').value.trim();
+      document.getElementById('btnEliminar').disabled = (conf !== c.nombre);
+    }
+
+    function eliminar() {
+      const nombre = document.getElementById('categoria').value;
+      const c = categorias.find(x => x.nombre === nombre);
+      if (!c) return;
+      const conf = document.getElementById('confirmacion').value.trim();
+      if (conf !== c.nombre) {
+        const msg = document.getElementById('mensaje');
+        msg.textContent = 'El nombre de confirmación no coincide.';
+        msg.className = 'mensaje error';
+        return;
+      }
+      if (!confirm(`¿Eliminar definitivamente la categoría "${c.nombre}" con ${c.productos.length} producto(s) y ${c.combos.length} combo(s)?`)) return;
+
+      const btn = document.getElementById('btnEliminar');
+      const msg = document.getElementById('mensaje');
+      btn.disabled = true;
+      btn.textContent = 'Eliminando...';
+      msg.className = 'mensaje';
+      msg.style.display = 'none';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          msg.textContent = res.mensaje;
+          msg.className = 'mensaje ' + (res.ok ? 'exito' : 'error');
+          if (res.ok) setTimeout(() => google.script.host.close(), 1800);
+          else { btn.disabled = false; btn.textContent = 'Eliminar Categoría'; }
+        })
+        .withFailureHandler(function(err) {
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'mensaje error';
+          btn.disabled = false;
+          btn.textContent = 'Eliminar Categoría';
+        })
+        .ejecutarEliminarCategoriaDesdeDialogo(nombre, conf);
+    }
+  </script>
+</body>
+</html>

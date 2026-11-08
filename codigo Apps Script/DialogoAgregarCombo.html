@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Estilos') ?>
+  <style>
+    .fila-componente {
+      display: grid;
+      grid-template-columns: 1fr 75px 36px;
+      gap: 6px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    .fila-componente select { width: 100%; padding: 7px 8px; }
+    .fila-componente input { width: 100%; padding: 7px 8px; text-align: center; }
+    .btn-eliminar {
+      background: #fce8e6;
+      color: #c5221f;
+      border: none;
+      border-radius: 6px;
+      padding: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .btn-eliminar:hover { background: #f4c7c3; }
+    .btn-anadir {
+      background: #e8f0fe;
+      color: #1a73e8;
+      border: 1px dashed #1a73e8;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      width: 100%;
+      margin-top: 4px;
+    }
+    .btn-anadir:hover { background: #d2e3fc; }
+    .disponibles {
+      font-size: 18px;
+      font-weight: bold;
+      color: #137333;
+      margin-top: 4px;
+    }
+    .disponibles.bajo { color: #c5221f; }
+  </style>
+</head>
+<body>
+  <h2>Agregar Combo</h2>
+
+  <div class="campo">
+    <label for="nombre">Nombre del combo</label>
+    <input type="text" id="nombre" placeholder="Ej: Combo Mojito" oninput="actualizar()">
+  </div>
+
+  <div class="campo">
+    <label for="precio">Precio (Bs)</label>
+    <input type="number" id="precio" min="0" step="0.01" value="0" oninput="actualizar()">
+  </div>
+
+  <div class="campo">
+    <label>Componentes</label>
+    <div id="componentes"></div>
+    <button type="button" class="btn-anadir" onclick="agregarFila()">+ Añadir componente</button>
+  </div>
+
+  <div class="info" id="info">Cargando productos...</div>
+  <div class="mensaje" id="mensaje"></div>
+
+  <div class="botones">
+    <button class="btn-cancelar" onclick="google.script.host.close()">Cancelar</button>
+    <button class="btn-primario" id="btnGuardar" onclick="guardar()" disabled>Guardar Combo</button>
+  </div>
+
+  <script>
+    let productos = [];
+    let nombresExistentes = [];
+
+    google.script.run
+      .withSuccessHandler(function(datos) {
+        productos = datos.productos;
+        nombresExistentes = datos.nombresExistentes;
+        agregarFila();
+        actualizar();
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('info').textContent = 'Error al cargar: ' + err.message;
+      })
+      .getDatosParaAgregarCombo();
+
+    function agregarFila() {
+      const cont = document.getElementById('componentes');
+      const fila = document.createElement('div');
+      fila.className = 'fila-componente';
+      fila.innerHTML = `
+        <select onchange="actualizar()"></select>
+        <input type="number" min="1" value="1" oninput="actualizar()">
+        <button type="button" class="btn-eliminar" onclick="eliminarFila(this)">×</button>
+      `;
+      cont.appendChild(fila);
+      refrescarDesplegables();
+      actualizar();
+    }
+
+    function eliminarFila(btn) {
+      const cont = document.getElementById('componentes');
+      if (cont.children.length <= 1) return;
+      btn.parentElement.remove();
+      refrescarDesplegables();
+      actualizar();
+    }
+
+    function refrescarDesplegables() {
+      const filas = document.querySelectorAll('.fila-componente');
+      filas.forEach((fila, idx) => {
+        const sel = fila.querySelector('select');
+        const valorActual = sel.value;
+        const yaElegidos = [];
+        filas.forEach((otra, j) => {
+          if (j !== idx) {
+            const v = otra.querySelector('select').value;
+            if (v) yaElegidos.push(v);
+          }
+        });
+        const disponibles = productos.filter(p => !yaElegidos.includes(p.id));
+        sel.innerHTML = disponibles.length
+          ? disponibles.map(p => `<option value="${p.id}">${p.id} - ${p.nombre} (stock: ${p.stock})</option>`).join('')
+          : '<option value="">Sin productos disponibles</option>';
+        if (disponibles.some(p => p.id === valorActual)) sel.value = valorActual;
+      });
+    }
+
+    function calcularDisponibles(componentes) {
+      if (componentes.length === 0) return 0;
+      return componentes.reduce((menor, c) => {
+        if (!c.producto) return 0;
+        const veces = Math.floor(c.producto.stock / c.cantidad);
+        return (menor === -1 || veces < menor) ? veces : menor;
+      }, -1);
+    }
+
+    function obtenerComponentes() {
+      return Array.from(document.querySelectorAll('.fila-componente')).map(fila => {
+        const id = fila.querySelector('select').value;
+        const cant = parseInt(fila.querySelector('input').value) || 0;
+        return { id, cantidad: cant };
+      }).filter(c => c.id && c.cantidad > 0);
+    }
+
+    function actualizar() {
+      const nombre = document.getElementById('nombre').value.trim();
+      const precio = parseFloat(document.getElementById('precio').value) || 0;
+      const componentes = obtenerComponentes();
+      const info = document.getElementById('info');
+      const btn = document.getElementById('btnGuardar');
+
+      if (productos.length === 0) {
+        info.textContent = 'No hay productos en el almacén. Agrega productos primero.';
+        btn.disabled = true;
+        return;
+      }
+
+      if (componentes.length === 0) {
+        info.innerHTML = 'Añade al menos un componente con cantidad válida.';
+        btn.disabled = true;
+        return;
+      }
+
+      const ids = componentes.map(c => c.id);
+      const hayDuplicado = ids.length !== new Set(ids).size;
+      if (hayDuplicado) {
+        info.innerHTML = '<span style="color:#c5221f">Hay productos repetidos. Cada producto debe aparecer una sola vez.</span>';
+        btn.disabled = true;
+        return;
+      }
+
+      const componentesConProducto = componentes.map(c => ({
+        producto: productos.find(p => p.id === c.id),
+        cantidad: c.cantidad
+      })).filter(c => c.producto);
+
+      const disp = calcularDisponibles(componentesConProducto);
+      const dispClass = disp <= 0 ? 'bajo' : '';
+
+      let html = `<div>Combos que se pueden armar: <span class="disponibles ${dispClass}">${disp}</span></div>`;
+
+      if (componentesConProducto.some(c => c.producto.stock < c.cantidad)) {
+        html += '<div style="color:#c5221f;font-size:12px;margin-top:4px">Algún componente no tiene stock suficiente para al menos 1 combo.</div>';
+      }
+
+      const nombreDuplicado = nombresExistentes.some(n => n.toLowerCase() === nombre.toLowerCase());
+      if (nombre && nombreDuplicado) {
+        html += '<div style="color:#c5221f;font-size:12px;margin-top:4px">Ya existe un combo con ese nombre.</div>';
+      }
+
+      info.innerHTML = html;
+
+      btn.disabled = !(nombre.length > 0 && precio >= 0 && !hayDuplicado && !nombreDuplicado && disp > 0);
+    }
+
+    function guardar() {
+      const nombre = document.getElementById('nombre').value.trim();
+      const precio = parseFloat(document.getElementById('precio').value) || 0;
+      const componentes = obtenerComponentes();
+      const btn = document.getElementById('btnGuardar');
+      const msg = document.getElementById('mensaje');
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
+      msg.className = 'mensaje';
+      msg.style.display = 'none';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          msg.textContent = res.mensaje;
+          msg.className = 'mensaje ' + (res.ok ? 'exito' : 'error');
+          if (res.ok) setTimeout(() => google.script.host.close(), 1500);
+          else { btn.disabled = false; btn.textContent = 'Guardar Combo'; }
+        })
+        .withFailureHandler(function(err) {
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'mensaje error';
+          btn.disabled = false;
+          btn.textContent = 'Guardar Combo';
+        })
+        .ejecutarAgregarComboDesdeDialogo(nombre, precio, componentes);
+    }
+  </script>
+</body>
+</html>

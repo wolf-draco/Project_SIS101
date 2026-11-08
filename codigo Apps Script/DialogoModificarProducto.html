@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Estilos') ?>
+  <style>
+    .readonly { background: #f1f3f4; color: #5f6368; cursor: not-allowed; }
+    .aviso-combos { background: #e8f0fe; color: #1967d2; padding: 10px 12px; border-radius: 6px; margin: 12px 0; font-size: 13px; }
+    .impacto { background: #fef7e0; padding: 10px 12px; border-radius: 6px; margin: 12px 0; font-size: 13px; color: #b06000; }
+    .impacto strong { color: #8a4b00; }
+    .delta-positivo { color: #137333; font-weight: bold; }
+    .delta-negativo { color: #c5221f; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>Modificar Producto</h2>
+
+  <div class="campo">
+    <label for="producto">Producto</label>
+    <select id="producto" onchange="cargarProducto()"><option>Cargando...</option></select>
+  </div>
+
+  <div class="campo">
+    <label for="idActual">ID (no modificable)</label>
+    <input type="text" id="idActual" class="readonly" readonly>
+  </div>
+
+  <div class="campo">
+    <label for="nombre">Nombre</label>
+    <input type="text" id="nombre" oninput="actualizar()">
+  </div>
+
+  <div class="campo">
+    <label for="categoria">Categoría (no modificable)</label>
+    <input type="text" id="categoria" class="readonly" readonly>
+  </div>
+
+  <div class="campo">
+    <label for="precio">Precio botella/unidad (Bs)</label>
+    <input type="number" id="precio" min="0" step="0.01" oninput="actualizar()">
+  </div>
+
+  <div class="campo">
+    <label for="stock">Stock (unidades)</label>
+    <input type="number" id="stock" min="0" oninput="actualizar()">
+  </div>
+
+  <div class="campo">
+    <label for="porciones">Porciones por botella (0 si no se vende por vaso)</label>
+    <input type="number" id="porciones" min="0" oninput="actualizar()">
+  </div>
+
+  <div class="campo">
+    <label for="precioVaso">Precio por vaso (Bs, 0 si no aplica)</label>
+    <input type="number" id="precioVaso" min="0" step="0.01" oninput="actualizar()">
+  </div>
+
+  <div id="zonaAvisos"></div>
+  <div class="mensaje" id="mensaje"></div>
+
+  <div class="botones">
+    <button class="btn-cancelar" onclick="google.script.host.close()">Cancelar</button>
+    <button class="btn-primario" id="btnGuardar" onclick="guardar()" disabled>Guardar Cambios</button>
+  </div>
+
+  <script>
+    let productos = [];
+    let actual = null;
+
+    google.script.run
+      .withSuccessHandler(function(datos) {
+        productos = datos.productos;
+        document.getElementById('producto').innerHTML = productos.length
+          ? productos.map(p => `<option value="${p.id}">${p.id} - ${p.nombre}</option>`).join('')
+          : '<option value="">No hay productos</option>';
+        cargarProducto();
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('zonaAvisos').innerHTML = '<div class="impacto">Error al cargar: ' + err.message + '</div>';
+      })
+      .getDatosParaModificarProducto();
+
+    function cargarProducto() {
+      const id = document.getElementById('producto').value;
+      actual = productos.find(p => p.id === id);
+      if (!actual) return;
+      document.getElementById('idActual').value = actual.id;
+      document.getElementById('categoria').value = actual.categoria;
+      document.getElementById('nombre').value = actual.nombre;
+      document.getElementById('precio').value = actual.precio;
+      document.getElementById('stock').value = actual.stock;
+      document.getElementById('porciones').value = actual.porciones;
+      document.getElementById('precioVaso').value = actual.precioVaso;
+      document.getElementById('mensaje').className = 'mensaje';
+      document.getElementById('mensaje').style.display = 'none';
+      actualizar();
+    }
+
+    function actualizar() {
+      if (!actual) return;
+      const nombre = document.getElementById('nombre').value.trim();
+      const precio = parseFloat(document.getElementById('precio').value) || 0;
+      const stock = parseInt(document.getElementById('stock').value) || 0;
+      const porciones = parseInt(document.getElementById('porciones').value) || 0;
+      const precioVaso = parseFloat(document.getElementById('precioVaso').value) || 0;
+      const zona = document.getElementById('zonaAvisos');
+      const btn = document.getElementById('btnGuardar');
+
+      let html = '';
+
+      if (actual.combosQueLoUsan.length > 0) {
+        html += `<div class="aviso-combos">
+          ℹ️ Este producto se usa en ${actual.combosQueLoUsan.length} combo(s): <strong>${actual.combosQueLoUsan.join(', ')}</strong>.
+          ${nombre !== actual.nombre ? 'Si cambias el nombre, los combos se actualizarán automáticamente.' : ''}
+        </div>`;
+      }
+
+      const valorAntes = actual.precio * actual.stock;
+      const valorDespues = precio * stock;
+      const delta = valorDespues - valorAntes;
+      if (Math.abs(delta) > 0.01) {
+        const clase = delta > 0 ? 'delta-positivo' : 'delta-negativo';
+        const signo = delta > 0 ? '+' : '';
+        html += `<div class="impacto">
+          Impacto en valor del inventario: <strong>${valorAntes.toFixed(2)} Bs → ${valorDespues.toFixed(2)} Bs</strong>
+          <span class="${clase}">(${signo}${delta.toFixed(2)} Bs)</span>
+        </div>`;
+      }
+
+      const nombreDuplicado = nombre && productos.some(p => p.id !== actual.id && p.nombre.toLowerCase() === nombre.toLowerCase());
+      if (nombreDuplicado) {
+        html += '<div class="impacto" style="background:#fce8e6;color:#c5221f">⚠️ Ya existe otro producto con ese nombre.</div>';
+      }
+
+      const inconsistente = (porciones > 0) !== (precioVaso > 0);
+      if (inconsistente) {
+        html += '<div class="impacto" style="background:#fce8e6;color:#c5221f">⚠️ Porciones y precio vaso deben ser ambos &gt; 0 o ambos = 0.</div>';
+      }
+
+      zona.innerHTML = html;
+
+      const sinCambios = nombre === actual.nombre && precio === actual.precio &&
+        stock === actual.stock && porciones === actual.porciones && precioVaso === actual.precioVaso;
+
+      btn.disabled = !(nombre.length > 0 && !nombreDuplicado && !inconsistente && !sinCambios);
+      btn.textContent = sinCambios ? 'Sin cambios' : 'Guardar Cambios';
+    }
+
+    function guardar() {
+      if (!actual) return;
+      const nombre = document.getElementById('nombre').value.trim();
+      const precio = parseFloat(document.getElementById('precio').value) || 0;
+      const stock = parseInt(document.getElementById('stock').value) || 0;
+      const porciones = parseInt(document.getElementById('porciones').value) || 0;
+      const precioVaso = parseFloat(document.getElementById('precioVaso').value) || 0;
+      const btn = document.getElementById('btnGuardar');
+      const msg = document.getElementById('mensaje');
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
+      msg.className = 'mensaje';
+      msg.style.display = 'none';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          msg.textContent = res.mensaje;
+          msg.className = 'mensaje ' + (res.ok ? 'exito' : 'error');
+          if (res.ok) setTimeout(() => google.script.host.close(), 1500);
+          else { btn.disabled = false; btn.textContent = 'Guardar Cambios'; }
+        })
+        .withFailureHandler(function(err) {
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'mensaje error';
+          btn.disabled = false;
+          btn.textContent = 'Guardar Cambios';
+        })
+        .ejecutarModificarProductoDesdeDialogo(actual.id, nombre, precio, stock, porciones, precioVaso);
+    }
+  </script>
+</body>
+</html>
