@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f4f5f0">
+    <title>Almacén | SIS101</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="app.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <a class="brand" href="#dashboard" aria-label="Almacén, inicio">
+          <span class="brand-mark">A</span>
+          <span class="brand-copy"><strong>almacén</strong><small>CONTROL DE INVENTARIO</small></span>
+        </a>
+
+        <div class="nav-label">GESTIÓN</div>
+        <nav class="main-nav" aria-label="Navegación principal">
+          <button class="nav-item active" data-view="dashboard"><span class="nav-icon">◫</span>Resumen</button>
+          <button class="nav-item" data-view="productos"><span class="nav-icon">▤</span>Productos<span class="nav-count" id="nav-product-count">0</span></button>
+          <button class="nav-item" data-view="combos"><span class="nav-icon">▦</span>Combos<span class="nav-count" id="nav-combo-count">0</span></button>
+          <button class="nav-item" data-view="ventas"><span class="nav-icon">↗</span>Ventas</button>
+        </nav>
+
+        <div class="nav-label nav-label-spaced">CONFIGURACIÓN</div>
+        <nav class="main-nav" aria-label="Configuración">
+          <button class="nav-item" data-view="categorias"><span class="nav-icon">▧</span>Categorías</button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="storage-indicator"><span class="status-dot"></span><span id="storage-label">Datos guardados en este dispositivo</span></div>
+          <button class="sidebar-action" id="export-data"><span>↓</span> Exportar respaldo</button>
+          <div class="user-chip"><span class="user-avatar">S</span><span><strong>SIS101</strong><small>Administración</small></span></div>
+        </div>
+      </aside>
+
+      <main class="main-area">
+        <header class="topbar">
+          <button class="mobile-menu" id="mobile-menu" aria-label="Abrir menú">☰</button>
+          <div class="breadcrumb"><span>Almacén</span><span class="crumb-separator">/</span><strong id="current-section">Resumen</strong></div>
+          <div class="topbar-actions">
+            <span class="today-label" id="today-label"></span>
+            <button class="button button-primary button-small" data-action="add-product"><span class="button-plus">+</span> Nuevo producto</button>
+          </div>
+        </header>
+
+        <div class="page-content" id="page-content"></div>
+      </main>
+    </div>
+
+    <div class="modal-backdrop" id="modal-backdrop" hidden>
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <header class="modal-header">
+          <div><p class="eyebrow" id="modal-eyebrow">ALMACÉN</p><h2 id="modal-title"></h2></div>
+          <button class="icon-button" id="modal-close" aria-label="Cerrar">×</button>
+        </header>
+        <div class="modal-body" id="modal-body"></div>
+      </section>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="Codigo%20base/Blu.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

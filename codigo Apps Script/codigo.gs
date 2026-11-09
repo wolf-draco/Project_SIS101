@@ -3,6 +3,11 @@ const NOMBRE_HOJA_COMBOS = 'Combos';
 const NOMBRE_HOJA_CATEGORIAS = 'Categorias';
 const NOMBRE_HOJA_VENTAS = 'Ventas';
 
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('WebApp')
+    .setTitle('Almacén | SIS101');
+}
+
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('Almacén')
@@ -144,6 +149,192 @@ function guardarAlmacenEnSheet(almacen) {
   if (filasCombos.length > 0) hojaCombos.getRange(2, 1, filasCombos.length, 4).setValues(filasCombos);
 
   try { compactarTablasDashboard(); } catch (e) { }
+}
+
+function obtenerRevisionWeb_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const tablas = [NOMBRE_HOJA_CATEGORIAS, NOMBRE_HOJA_PRODUCTOS, NOMBRE_HOJA_COMBOS].map(nombre => {
+    const hoja = ss.getSheetByName(nombre);
+    return hoja ? hoja.getDataRange().getValues() : [];
+  });
+  const digest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    JSON.stringify(tablas),
+    Utilities.Charset.UTF_8
+  );
+  return Utilities.base64EncodeWebSafe(digest);
+}
+
+function apiObtenerDatosWeb() {
+  const almacen = cargarAlmacenDesdeSheet();
+  const hojaVentas = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOMBRE_HOJA_VENTAS);
+  const zona = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+  const ventas = hojaVentas && hojaVentas.getLastRow() > 1
+    ? hojaVentas.getRange(2, 1, hojaVentas.getLastRow() - 1, 8).getValues().map(fila => {
+      const fecha = fila[0] instanceof Date ? Utilities.formatDate(fila[0], zona, 'yyyy-MM-dd') : String(fila[0] || '');
+      const hora = fila[1] instanceof Date ? Utilities.formatDate(fila[1], zona, 'HH:mm:ss') : String(fila[1] || '');
+      return {
+        fecha: `${fecha} ${hora}`.trim(),
+        tipo: String(fila[2] || ''),
+        detalle: String(fila[4] || ''),
+        cantidad: Number(fila[5]) || 0,
+        total: Number(fila[7]) || 0
+      };
+    }).reverse()
+    : [];
+
+  return {
+    version: obtenerRevisionWeb_(),
+    categorias: almacen.categorias.map(c => ({ nombre: c.nombre, letra: c.letra, ultimo: Number(c.ultimo) || 0 })),
+    productos: almacen.productos.map(p => ({
+      id: p.id,
+      nombre: p.nombre,
+      categoria: p.categoria,
+      precio: Number(p.precio) || 0,
+      stock: Number(p.stock) || 0,
+      porciones: Number(p.porciones) || 0,
+      precioVaso: Number(p.precioVaso) || 0,
+      vasosSueltos: Number(p.vasosSueltos) || 0
+    })),
+    combos: almacen.combos.map(c => ({
+      id: c.id,
+      nombre: c.nombre,
+      precio: Number(c.precio) || 0,
+      componentes: c.componentes.map(parte => ({ id: parte.producto.id, cantidad: Number(parte.cantidad) || 0 })),
+      componentesRotos: c.componentesRotos || [],
+      textoOriginal: c._textoOriginal || null
+    })),
+    ultimoCombo: Number(almacen.ultimoCombo) || 0,
+    ventas
+  };
+}
+
+function apiGuardarInventarioWeb(datos, versionEsperada) {
+  return conLock(() => {
+    const versionActual = obtenerRevisionWeb_();
+    if (String(versionEsperada) !== versionActual) {
+      return { ok: false, conflicto: true, mensaje: 'El inventario cambió en otra sesión. Se cargaron los datos más recientes.', datos: apiObtenerDatosWeb() };
+    }
+
+    try {
+      if (!datos || !Array.isArray(datos.categorias) || !Array.isArray(datos.productos) || !Array.isArray(datos.combos)) {
+        return { ok: false, mensaje: 'Los datos recibidos no tienen un formato válido.' };
+      }
+
+      const almacen = new Almacen();
+      almacen.categorias = datos.categorias.map(c => ({ nombre: String(c.nombre || '').trim(), letra: String(c.letra || '').trim().toUpperCase(), ultimo: Number(c.ultimo) || 0 }));
+      const nombresCategorias = almacen.categorias.map(c => c.nombre.toLowerCase());
+      const letrasCategorias = almacen.categorias.map(c => c.letra);
+      if (nombresCategorias.some((nombre, i) => !nombre || nombresCategorias.indexOf(nombre) !== i)
+        || letrasCategorias.some((letra, i) => !/^[A-Z]$/.test(letra) || letra === 'K' || letrasCategorias.indexOf(letra) !== i)) {
+        return { ok: false, mensaje: 'Hay nombres o prefijos de categoría inválidos o repetidos.' };
+      }
+
+      almacen.productos = datos.productos.map(d => {
+        const producto = new Producto(String(d.nombre || '').trim(), String(d.categoria || ''), Number(d.precio), Number(d.stock), Number(d.porciones), Number(d.precioVaso));
+        producto.id = String(d.id || '');
+        producto.vasosSueltos = Number(d.vasosSueltos) || 0;
+        return producto;
+      });
+      const idsProductos = almacen.productos.map(p => p.id);
+      const nombresProductos = almacen.productos.map(p => p.nombre.toLowerCase());
+      if (almacen.productos.some(p => !p.id || !p.nombre || !almacen.categorias.some(c => c.nombre === p.categoria)
+        || [p.precio, p.stock, p.porciones, p.precioVaso, p.vasosSueltos].some(n => !Number.isFinite(n) || n < 0))
+        || almacen.productos.some(p => !Number.isInteger(p.stock) || !Number.isInteger(p.porciones) || !Number.isInteger(p.vasosSueltos)
+          || ((p.porciones > 0) !== (p.precioVaso > 0)))
+        || idsProductos.some((id, i) => idsProductos.indexOf(id) !== i)
+        || nombresProductos.some((nombre, i) => nombresProductos.indexOf(nombre) !== i)) {
+        return { ok: false, mensaje: 'Hay productos inválidos, repetidos o con categorías inexistentes.' };
+      }
+
+      almacen.combos = datos.combos.map(d => {
+        const componentes = (Array.isArray(d.componentes) ? d.componentes : []).map(parte => ({
+          producto: almacen.buscarProducto(String(parte.id || '')),
+          cantidad: Number(parte.cantidad)
+        }));
+        if (componentes.some(parte => !parte.producto || !Number.isInteger(parte.cantidad) || parte.cantidad <= 0)) {
+          throw new Error('Un combo contiene componentes inválidos.');
+        }
+        const idsComponentes = componentes.map(parte => parte.producto.id);
+        if (idsComponentes.some((id, i) => idsComponentes.indexOf(id) !== i)) throw new Error('Un combo tiene productos repetidos.');
+        const combo = new Combo(String(d.nombre || '').trim(), Number(d.precio), componentes);
+        combo.id = String(d.id || '');
+        combo.componentesRotos = Array.isArray(d.componentesRotos) ? d.componentesRotos.map(nombre => String(nombre)) : [];
+        combo._textoOriginal = combo.componentesRotos.length ? String(d.textoOriginal || '') : null;
+        return combo;
+      });
+      const idsCombos = almacen.combos.map(c => c.id);
+      const nombresCombos = almacen.combos.map(c => c.nombre.toLowerCase());
+      if (almacen.combos.some(c => !c.id || !c.nombre || !Number.isFinite(c.precio) || c.precio < 0
+        || (!c.componentes.length && !c.componentesRotos.length)
+        || (c.componentesRotos.length && !c._textoOriginal))
+        || idsCombos.some((id, i) => idsCombos.indexOf(id) !== i)
+        || nombresCombos.some((nombre, i) => nombresCombos.indexOf(nombre) !== i)) {
+        return { ok: false, mensaje: 'Hay combos inválidos, repetidos o sin componentes.' };
+      }
+      almacen.ultimoCombo = Number(datos.ultimoCombo) || 0;
+
+      const almacenAnterior = cargarAlmacenDesdeSheet();
+      guardarAlmacenEnSheet(almacen);
+      const idsProductosNuevos = almacen.productos.map(p => p.id);
+      const idsCombosNuevos = almacen.combos.map(c => c.id);
+      const nombresCategoriasNuevas = almacen.categorias.map(c => c.nombre);
+      almacenAnterior.productos.filter(p => !idsProductosNuevos.includes(p.id)).forEach(p => {
+        registrarEliminacion('Producto', p.id, p.nombre, p.categoria, p.stock, p.precio, 'Desde la aplicación web');
+      });
+      almacenAnterior.combos.filter(c => !idsCombosNuevos.includes(c.id)).forEach(c => {
+        registrarEliminacion('Combo', c.id, c.nombre, '-', 0, c.precio, 'Desde la aplicación web');
+      });
+      almacenAnterior.categorias.filter(c => !nombresCategoriasNuevas.includes(c.nombre)).forEach(c => {
+        registrarEliminacion('Categoría', '-', c.nombre, '-', 0, 0, 'Desde la aplicación web');
+      });
+      return { ok: true, datos: apiObtenerDatosWeb() };
+    } catch (e) {
+      return { ok: false, mensaje: 'No se pudo guardar el inventario: ' + e.message };
+    }
+  });
+}
+
+function apiVenderVasoWeb(idProducto, idVaso, cantidad) {
+  return conLock(() => {
+    try {
+      const almacen = cargarAlmacenDesdeSheet();
+      const producto = almacen.buscarProducto(idProducto);
+      if (!producto) return { ok: false, mensaje: `No existe el producto ${idProducto}.` };
+      const precio = Number(producto.precioVaso);
+      const nombre = producto.nombre;
+      const cantidadVenta = Number(cantidad);
+      if (!Number.isInteger(cantidadVenta) || !almacen.venderVaso(idProducto, cantidadVenta, idVaso)) {
+        return { ok: false, mensaje: 'No se pudo realizar la venta. Revisa el stock disponible.' };
+      }
+      guardarAlmacenEnSheet(almacen);
+      registrarVenta('Vaso', idProducto, nombre, cantidadVenta, precio);
+      return { ok: true, mensaje: `Venta registrada: ${cantidadVenta} vaso(s) de ${nombre}.`, datos: apiObtenerDatosWeb() };
+    } catch (e) {
+      return { ok: false, mensaje: 'Error: ' + e.message };
+    }
+  });
+}
+
+function apiVenderComboWeb(idCombo, cantidad) {
+  return conLock(() => {
+    try {
+      const almacen = cargarAlmacenDesdeSheet();
+      const combo = almacen.buscarCombo(idCombo);
+      if (!combo) return { ok: false, mensaje: `No existe el combo ${idCombo}.` };
+      const precio = Number(combo.precio);
+      const nombre = combo.nombre;
+      const cantidadVenta = Number(cantidad);
+      if (!Number.isInteger(cantidadVenta) || !almacen.venderCombo(idCombo, cantidadVenta)) {
+        return { ok: false, mensaje: 'No se pudo vender el combo. Revisa el stock de sus componentes.' };
+      }
+      guardarAlmacenEnSheet(almacen);
+      registrarVenta('Combo', idCombo, nombre, cantidadVenta, precio);
+      return { ok: true, mensaje: `Venta registrada: ${cantidadVenta} combo(s) ${nombre}.`, datos: apiObtenerDatosWeb() };
+    } catch (e) {
+      return { ok: false, mensaje: 'Error: ' + e.message };
+    }
+  });
 }
 
 class Producto {

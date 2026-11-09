@@ -23,6 +23,31 @@ node Prueba.js
 La salida muestra la creación del almacén, validaciones, administración de
 stock, combos, ventas, eliminaciones y exportación de datos a filas.
 
+## Aplicación web
+
+Abre [`index.html`](./index.html) en un navegador para usar la interfaz de
+inventario. Permite administrar productos, categorías y combos, registrar
+ventas por vaso o combo, y exportar el inventario a CSV o descargar un
+respaldo JSON. Los datos se guardan en el almacenamiento local del navegador;
+no se sincronizan entre dispositivos ni reemplazan la hoja de cálculo de
+Google Apps Script.
+
+### Conectar con Google Sheets
+
+El proyecto de Apps Script incluye una versión web que usa las hojas
+`Productos`, `Combos`, `Categorias` y `Ventas` como base de datos. Para
+prepararla, ejecuta `node build-gas-web.js`; el comando genera
+`codigo Apps Script/WebApp.html` con los archivos actuales de la página.
+Agrega o reemplaza ese archivo en el mismo proyecto de Apps Script vinculado a
+la hoja de cálculo y despliega el proyecto como una aplicación web. La función
+`doGet` sirve la página y `google.script.run` lee y guarda los datos en las
+hojas existentes.
+
+Al desplegar, limita el acceso a tu cuenta o a las personas que deban usar el
+inventario. No publiques una hoja con información comercial para acceso
+anónimo. Después de cambiar `index.html`, `app.css` o `app.js`, vuelve a
+ejecutar el empaquetador y actualiza `WebApp.html` en Apps Script.
+
 ## Uso como módulo
 
 [`Blu.js`](./Blu.js) exporta las clases `Producto`, `Combo` y `Almacen`:
