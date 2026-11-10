@@ -195,7 +195,6 @@ function emptyTable(message, detail, action = "", columns = 8) {
 }
 
 function renderDashboard() {
-  const lowStock = almacen.stockBajo(LOW_STOCK_LIMIT);
   const inventoryUnits = almacen.productos.reduce((sum, product) => sum + product.stock, 0);
   const inventoryValue = almacen.valorTotal();
   const totalSales = salesHistory.reduce((sum, sale) => sum + sale.total, 0);
@@ -203,10 +202,14 @@ function renderDashboard() {
     const count = almacen.filtrarPorCategoria(category.nombre).length;
     return `<div class="category-row"><div class="category-label"><span class="category-letter">${escapeHTML(category.letra)}</span>${escapeHTML(category.nombre)}</div><span class="category-count">${count} ${count === 1 ? "producto" : "productos"}</span></div>`;
   }).join("");
-  const lowRows = lowStock.slice(0, 6).map((product) => `<tr><td><div class="item-cell"><span class="item-avatar">${escapeHTML(initials(product.nombre))}</span><span class="item-name"><strong>${escapeHTML(product.nombre)}</strong><small>${escapeHTML(product.id)} · ${escapeHTML(product.categoria)}</small></span></div></td><td class="stock-value ${product.stock <= 0 ? "stock-low" : ""}">${product.stock}</td><td>${product.stock <= 0 ? '<span class="pill danger">Agotado</span>' : '<span class="pill warning">Reponer</span>'}</td></tr>`).join("");
-  const demoBanner = almacen.productos.length === 0
-    ? `<div class="demo-banner"><p><strong>¿Quieres explorar el sistema?</strong> Carga un inventario de ejemplo o registra tus productos reales.</p><button class="button button-secondary button-small" data-action="load-demo">Cargar ejemplo</button></div>` : "";
-  return `${pageHeading("PANEL DE CONTROL", "Resumen del almacén", "Una vista rápida del inventario y su actividad.", '<button class="button button-primary" data-action="add-product"><span class="button-plus">+</span> Agregar producto</button>')}
+  const inventoryRows = almacen.productos.slice(-6).reverse().map((product) => `<tr>
+    <td><div class="item-cell"><span class="item-avatar">${escapeHTML(initials(product.nombre))}</span><span class="item-name"><strong>${escapeHTML(product.nombre)}</strong><small>${escapeHTML(product.id)}</small></span></div></td>
+    <td><span class="category-tag">${escapeHTML(product.categoria)}</span></td>
+    <td><span class="stock-value">${product.stock}</span> <span class="mono">unid.</span></td>
+    <td class="sale-price">${money(product.precio)}</td>
+  </tr>`).join("");
+  const productCountLabel = almacen.productos.length === 1 ? "producto registrado" : "productos registrados";
+  return `${pageHeading("PANEL DE CONTROL", "Resumen del almacén", "Inventario, disponibilidad y actividad en un solo lugar.", '<button class="button button-primary" data-action="add-product"><span class="button-plus">+</span> Agregar producto</button>')}
     <section class="metric-grid" aria-label="Indicadores del almacén">
       <article class="metric-card metric-highlight"><div class="metric-label">Valor del inventario <span class="metric-icon">◈</span></div><div class="metric-value">${money(inventoryValue)}</div><div class="metric-note">${inventoryUnits} unidades registradas</div></article>
       <article class="metric-card"><div class="metric-label">Productos <span class="metric-icon">▤</span></div><div class="metric-value">${almacen.productos.length}</div><div class="metric-note">En ${almacen.categorias.length} categorías</div></article>
@@ -214,11 +217,11 @@ function renderDashboard() {
       <article class="metric-card"><div class="metric-label">Ventas registradas <span class="metric-icon">↗</span></div><div class="metric-value">${money(totalSales)}</div><div class="metric-note">${salesHistory.length} operaciones guardadas</div></article>
     </section>
     <div class="dashboard-grid">
-      <section class="panel"><header class="panel-header"><div><h2>Stock por reponer</h2><p>Productos con ${LOW_STOCK_LIMIT} unidades o menos</p></div><button class="text-link" data-view="productos">Ver inventario →</button></header>
-        <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Stock</th><th>Estado</th></tr></thead><tbody>${lowRows || emptyTable("Todo en orden", "No hay productos con stock bajo.", '<button class="button button-secondary button-small" data-action="add-product">Agregar producto</button>', 3)}</tbody></table></div>
+      <section class="panel dashboard-inventory-panel"><header class="panel-header"><div><h2>Inventario reciente</h2><p>${almacen.productos.length} ${productCountLabel}</p></div><button class="text-link" data-view="productos">Ver inventario <span aria-hidden="true">→</span></button></header>
+        <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Precio</th></tr></thead><tbody>${inventoryRows || emptyTable("Inventario vacío", "Los productos aparecerán aquí.", "", 4)}</tbody></table></div>
       </section>
-      <section class="panel"><header class="panel-header"><div><h2>Categorías</h2><p>Distribución de productos</p></div><button class="text-link" data-view="categorias">Administrar →</button></header><div class="category-list">${categoryRows || '<div class="empty-state">Aún no hay categorías.</div>'}</div></section>
-    </div>${demoBanner}<p class="dashboard-footnote">Los datos se guardan automáticamente en este navegador. Exporta un respaldo desde el menú lateral.</p>`;
+      <section class="panel"><header class="panel-header"><div><h2>Categorías</h2><p>Distribución del inventario</p></div><button class="text-link" data-view="categorias">Administrar <span aria-hidden="true">→</span></button></header><div class="category-list">${categoryRows || '<div class="empty-state">Aún no hay categorías.</div>'}</div></section>
+    </div>`;
 }
 
 function renderProducts() {
@@ -493,25 +496,6 @@ function exportProductsCSV() {
   showToast("Inventario exportado a CSV.");
 }
 
-function loadDemoData() {
-  if (almacen.productos.length || !confirm("Se cargarán productos de ejemplo en este almacén vacío.")) return;
-  const samples = [
-    ["Singani Casa Real", "Botellas", 180, 15, 12, 20],
-    ["Fernet Branca", "Botellas", 220, 5, 12, 25],
-    ["Cerveza Paceña", "Cervezas", 25, 30, 0, 0],
-    ["Coca-Cola 2L", "Mezcladores", 15, 8, 0, 0],
-    ["Bolsa de hielo", "Insumos", 10, 20, 0, 0],
-    ["Vaso descartable", "Insumos", 1, 100, 0, 0],
-  ];
-  samples.forEach((data) => almacen.agregarProducto(new Producto(...data)));
-  almacen.agregarCombo(new Combo("Combo Singani", 220, [
-    { producto: almacen.buscarProducto("B1"), cantidad: 1 },
-    { producto: almacen.buscarProducto("M1"), cantidad: 1 },
-    { producto: almacen.buscarProducto("I1"), cantidad: 1 },
-  ]));
-  saveData(); render(); showToast("Inventario de ejemplo cargado.");
-}
-
 document.addEventListener("click", (event) => {
   const viewButton = event.target.closest("[data-view]");
   if (viewButton) {
@@ -531,7 +515,6 @@ document.addEventListener("click", (event) => {
   if (action === "close-modal") closeModal();
   if (action === "export-data") exportBackup();
   if (action === "export-csv") exportProductsCSV();
-  if (action === "load-demo") loadDemoData();
   if (action === "delete-product") {
     const product = almacen.buscarProducto(id);
     const combo = almacen.combos.find((item) => item.componentes.some((part) => part.producto.id === id));

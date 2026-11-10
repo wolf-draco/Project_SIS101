@@ -1,22 +1,22 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const root = __dirname;
+const root = path.resolve(__dirname, "..");
 const htmlPath = path.join(root, "index.html");
-const cssPath = path.join(root, "app.css");
-const appPath = path.join(root, "app.js");
-const modelPath = path.join(root, "Codigo base", "Blu.js");
-const outputPath = path.join(root, "codigo Apps Script", "WebApp.html");
+const cssPath = path.join(root, "src", "css", "app.css");
+const appPath = path.join(root, "src", "js", "app.js");
+const modelPath = path.join(root, "src", "js", "Blu.js");
+const outputPath = path.join(root, "apps-script", "WebApp.html");
 
 let html = fs.readFileSync(htmlPath, "utf8").replace(/\r\n/g, "\n");
 const css = fs.readFileSync(cssPath, "utf8");
 const app = fs.readFileSync(appPath, "utf8");
 const model = fs.readFileSync(modelPath, "utf8");
 
-const stylesheetTag = '    <link rel="stylesheet" href="app.css">';
+const stylesheetTag = '    <link rel="stylesheet" href="src/css/app.css">';
 const scriptTags = [
-  '    <script src="Codigo%20base/Blu.js"></script>',
-  '    <script src="app.js"></script>',
+  '    <script src="src/js/Blu.js"></script>',
+  '    <script src="src/js/app.js"></script>',
 ].join("\n");
 
 if (!html.includes(stylesheetTag) || !html.includes(scriptTags)) {

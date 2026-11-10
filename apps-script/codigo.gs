@@ -128,7 +128,6 @@ function guardarAlmacenEnSheet(almacen) {
   hojaCategorias.appendRow(['Nombre', 'Letra', 'Último ID']);
   const filasCat = almacen.categorias.map(c => [c.nombre, c.letra, c.ultimo]);
   if (filasCat.length > 0) hojaCategorias.getRange(2, 1, filasCat.length, 3).setValues(filasCat);
-
   PropertiesService.getScriptProperties().setProperty(
     'categorias_backup',
     JSON.stringify(almacen.categorias.map(c => ({ nombre: c.nombre, letra: c.letra, ultimo: c.ultimo })))
@@ -140,6 +139,11 @@ function guardarAlmacenEnSheet(almacen) {
   hojaProductos.appendRow(['ID', 'Nombre', 'Categoría', 'Precio', 'Stock', 'Porciones', 'Precio Vaso', 'Vasos Sueltos']);
   const filasProd = almacen.aFilasProductos();
   if (filasProd.length > 0) hojaProductos.getRange(2, 1, filasProd.length, 8).setValues(filasProd);
+  if (filasProd.length > 0) {
+    hojaProductos.getRange(2, 4, filasProd.length, 1).setNumberFormat('#,##0.00" Bs"');
+    hojaProductos.getRange(2, 7, filasProd.length, 1).setNumberFormat('#,##0.00" Bs"');
+    hojaProductos.getRange(2, 5, filasProd.length, 1).setHorizontalAlignment('center');
+  }
 
   let hojaCombos = ss.getSheetByName(NOMBRE_HOJA_COMBOS);
   if (!hojaCombos) hojaCombos = ss.insertSheet(NOMBRE_HOJA_COMBOS);
@@ -147,8 +151,120 @@ function guardarAlmacenEnSheet(almacen) {
   hojaCombos.appendRow(['ID', 'Nombre', 'Precio', 'Componentes']);
   const filasCombos = almacen.aFilasCombos();
   if (filasCombos.length > 0) hojaCombos.getRange(2, 1, filasCombos.length, 4).setValues(filasCombos);
+  if (filasCombos.length > 0) hojaCombos.getRange(2, 3, filasCombos.length, 1).setNumberFormat('#,##0.00" Bs"');
 
-  try { compactarTablasDashboard(); } catch (e) { }
+  estilizarHojasDatos_([NOMBRE_HOJA_CATEGORIAS, NOMBRE_HOJA_PRODUCTOS, NOMBRE_HOJA_COMBOS]);
+}
+
+function estilizarTabla_(hoja, columnas, colorPestana, anchos) {
+  const filas = Math.max(1, hoja.getLastRow());
+  const tabla = hoja.getRange(1, 1, filas, columnas);
+  hoja.setHiddenGridlines(true);
+  hoja.setFrozenRows(1);
+  hoja.setTabColor(colorPestana);
+  hoja.getBandings().forEach(banda => banda.remove());
+
+  tabla.setBackground('#FFFFFF');
+  tabla.setFontFamily('Arial').setFontSize(10).setFontColor('#263244').setVerticalAlignment('middle');
+  hoja.getRange(1, 1, 1, columnas)
+    .setBackground('#1E5EFF')
+    .setFontColor('#FFFFFF')
+    .setFontWeight('bold')
+    .setFontSize(10)
+    .setHorizontalAlignment('left')
+    .setWrap(true);
+  hoja.setRowHeight(1, 34);
+  if (filas > 1) {
+    hoja.setRowHeights(2, filas - 1, 30);
+    for (let inicio = 2; inicio <= filas; inicio += 500) {
+      const cantidad = Math.min(500, filas - inicio + 1);
+      const fondos = Array.from({ length: cantidad }, (_, indice) => {
+        const color = (inicio + indice) % 2 === 0 ? '#FFFFFF' : '#F3F6FB';
+        return Array(columnas).fill(color);
+      });
+      hoja.getRange(inicio, 1, cantidad, columnas).setBackgrounds(fondos);
+    }
+    hoja.getRange(1, 1, filas, columnas)
+      .setBorder(true, true, true, true, true, true, '#E2E8F0', SpreadsheetApp.BorderStyle.SOLID);
+  }
+  anchos.forEach((ancho, indice) => hoja.setColumnWidth(indice + 1, ancho));
+  const filtro = hoja.getFilter();
+  if (filtro) filtro.remove();
+  if (filas > 1) hoja.getRange(1, 1, filas, columnas).createFilter();
+}
+
+function estilizarFilaNueva_(hoja, fila, columnas, colorPestana) {
+  const rango = hoja.getRange(fila, 1, 1, columnas);
+  rango.setBackground(fila % 2 === 0 ? '#FFFFFF' : '#F3F6FB')
+    .setFontFamily('Arial')
+    .setFontSize(10)
+    .setFontColor('#263244')
+    .setVerticalAlignment('middle')
+    .setBorder(true, true, true, true, true, true, '#E2E8F0', SpreadsheetApp.BorderStyle.SOLID);
+  hoja.setRowHeight(fila, 30);
+  hoja.setTabColor(colorPestana);
+
+  const filtro = hoja.getFilter();
+  if (filtro) filtro.remove();
+  hoja.getRange(1, 1, fila, columnas).createFilter();
+}
+
+function ajustarAlineacionHoja_(hoja) {
+  const filasDatos = hoja.getLastRow() - 1;
+  if (filasDatos < 1) return;
+
+  const nombre = hoja.getName();
+  if (nombre === NOMBRE_HOJA_PRODUCTOS) {
+    hoja.getRange(2, 1, filasDatos, 1).setFontColor('#1746B0').setFontWeight('bold').setHorizontalAlignment('center');
+    hoja.getRange(2, 4, filasDatos, 1).setHorizontalAlignment('right');
+    hoja.getRange(2, 5, filasDatos, 4).setHorizontalAlignment('center');
+  } else if (nombre === NOMBRE_HOJA_COMBOS) {
+    hoja.getRange(2, 1, filasDatos, 1).setFontColor('#1746B0').setFontWeight('bold').setHorizontalAlignment('center');
+    hoja.getRange(2, 3, filasDatos, 1).setHorizontalAlignment('right');
+    hoja.getRange(2, 4, filasDatos, 1).setWrap(true);
+  } else if (nombre === NOMBRE_HOJA_CATEGORIAS) {
+    hoja.getRange(2, 2, filasDatos, 2).setHorizontalAlignment('center');
+    hoja.getRange(2, 1, filasDatos, 1).setFontWeight('bold');
+  } else if (nombre === NOMBRE_HOJA_VENTAS) {
+    hoja.getRange(2, 1, filasDatos, 4).setHorizontalAlignment('center');
+    hoja.getRange(2, 6, filasDatos, 1).setHorizontalAlignment('center');
+    hoja.getRange(2, 7, filasDatos, 2).setHorizontalAlignment('right');
+  } else if (nombre === 'Eliminados') {
+    hoja.getRange(2, 1, filasDatos, 4).setHorizontalAlignment('center');
+    hoja.getRange(2, 7, filasDatos, 2).setHorizontalAlignment('right');
+    hoja.getRange(2, 9, filasDatos, 1).setWrap(true);
+  }
+}
+
+function estilizarHojasDatos_(nombresHojas) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const configuraciones = [
+    [NOMBRE_HOJA_PRODUCTOS, 8, '#1E5EFF', [75, 200, 145, 105, 85, 100, 110, 110]],
+    [NOMBRE_HOJA_COMBOS, 4, '#60708F', [75, 210, 115, 420]],
+    [NOMBRE_HOJA_CATEGORIAS, 3, '#0F3D2E', [190, 90, 110]],
+    [NOMBRE_HOJA_VENTAS, 8, '#2E9B72', [120, 100, 100, 75, 220, 90, 130, 130]],
+    ['Eliminados', 9, '#4D5666', [120, 100, 110, 75, 200, 140, 110, 120, 300]],
+  ];
+
+  configuraciones.forEach(([nombre, columnas, color, anchos]) => {
+    if (nombresHojas && !nombresHojas.includes(nombre)) return;
+    const hoja = ss.getSheetByName(nombre);
+    if (!hoja) return;
+    estilizarTabla_(hoja, columnas, color, anchos);
+    ajustarAlineacionHoja_(hoja);
+    const filas = hoja.getLastRow() - 1;
+    if (filas < 1) return;
+    if (nombre === NOMBRE_HOJA_PRODUCTOS) {
+      hoja.getRange(2, 4, filas, 1).setNumberFormat('#,##0.00" Bs"');
+      hoja.getRange(2, 7, filas, 1).setNumberFormat('#,##0.00" Bs"');
+    } else if (nombre === NOMBRE_HOJA_COMBOS) {
+      hoja.getRange(2, 3, filas, 1).setNumberFormat('#,##0.00" Bs"');
+    } else if (nombre === NOMBRE_HOJA_VENTAS) {
+      hoja.getRange(2, 7, filas, 2).setNumberFormat('#,##0.00" Bs"');
+    } else if (nombre === 'Eliminados') {
+      hoja.getRange(2, 8, filas, 1).setNumberFormat('#,##0.00" Bs"');
+    }
+  });
 }
 
 function obtenerRevisionWeb_() {
@@ -589,17 +705,6 @@ function menuVerCategorias() {
   SpreadsheetApp.getUi().alert('Revisa los registros (Ver > Registros) para ver las categorías.');
 }
 
-function menuAgregarProductoEjemplo() {
-  const almacen = cargarAlmacenDesdeSheet();
-  const nuevoProd = new Producto("Whisky de Prueba", "Botellas", 150, 10, 15, 25);
-  if (almacen.agregarProducto(nuevoProd)) {
-    guardarAlmacenEnSheet(almacen);
-    SpreadsheetApp.getUi().alert(`Producto "${nuevoProd.nombre}" agregado con ID: ${nuevoProd.id}`);
-  } else {
-    SpreadsheetApp.getUi().alert('No se pudo agregar el producto. Revisa los registros.');
-  }
-}
-
 function menuReiniciarDatos() {
   const ui = SpreadsheetApp.getUi();
   const respuesta = ui.alert('¿Estás seguro?', 'Esto borrará todos los datos actuales y creará un conjunto de prueba.', ui.ButtonSet.YES_NO);
@@ -663,21 +768,15 @@ function registrarVenta(tipo, id, nombre, cantidad, precioUnitario) {
   const fila = hojaVentas.getLastRow() + 1;
   hojaVentas.getRange(fila, 1, 1, 2).setNumberFormat('@');
   hojaVentas.getRange(fila, 1, 1, 8).setValues([[fecha, hora, tipo, id, nombre, cantidad, precioUnitario, cantidad * precioUnitario]]);
-  return true;
-}
-
-function verificarVentas() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const hoja = ss.getSheetByName(NOMBRE_HOJA_VENTAS);
-  if (!hoja || hoja.getLastRow() <= 1) {
-    Logger.log("No hay ventas registradas todavía.");
-    return;
+  if (fila === 2) {
+    estilizarTabla_(hojaVentas, 8, '#2E9B72', [120, 100, 100, 75, 220, 90, 130, 130]);
+  } else {
+    estilizarFilaNueva_(hojaVentas, fila, 8, '#2E9B72');
   }
-  const datos = hoja.getDataRange().getValues();
-  Logger.log(`Total de ventas registradas: ${datos.length - 1}`);
-  datos.slice(1).forEach(fila => {
-    Logger.log(`${fila[0]} ${fila[1]} | ${fila[2]} ${fila[3]} | ${fila[5]} x ${fila[4]} = ${fila[7]} Bs`);
-  });
+  hojaVentas.getRange(fila, 1, 1, 4).setHorizontalAlignment('center');
+  hojaVentas.getRange(fila, 6, 1, 1).setHorizontalAlignment('center');
+  hojaVentas.getRange(fila, 7, 1, 2).setHorizontalAlignment('right').setNumberFormat('#,##0.00" Bs"');
+  return true;
 }
 
 function include(nombreArchivo) {
@@ -817,6 +916,9 @@ function registrarEliminacion(tipo, id, nombre, categoria, stockAlBorrar, precio
   const fecha = Utilities.formatDate(ahora, zona, 'dd/MM/yyyy');
   const hora = Utilities.formatDate(ahora, zona, 'HH:mm:ss');
   hoja.appendRow([fecha, hora, tipo, id, nombre, categoria, stockAlBorrar, precio, detalle]);
+  estilizarTabla_(hoja, 9, '#4D5666', [120, 100, 110, 75, 200, 140, 110, 120, 300]);
+  ajustarAlineacionHoja_(hoja);
+  hoja.getRange(2, 8, Math.max(1, hoja.getLastRow() - 1), 1).setNumberFormat('#,##0.00" Bs"');
 }
 
 function menuAgregarCategoria() {
@@ -1083,26 +1185,30 @@ function instalarDashboard() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let hoja = ss.getSheetByName('Proyecto SIS101');
   if (!hoja) hoja = ss.insertSheet('Proyecto SIS101', 0);
+  hoja.getRange('B2:I100').breakApart();
   hoja.clear();
   hoja.clearFormats();
+  hoja.getBandings().forEach(banda => banda.remove());
   hoja.setHiddenGridlines(true);
-  hoja.setColumnWidth(1, 25);
-  for (let c = 2; c <= 9; c++) hoja.setColumnWidth(c, 115);
+  hoja.setTabColor('#1E5EFF');
+  hoja.setColumnWidth(1, 24);
+  [76, 185, 138, 82, 112, 28, 112, 126].forEach((ancho, indice) => hoja.setColumnWidth(indice + 2, ancho));
+  hoja.getRange('B2:I55').setBackground('#F5F7FB').setFontFamily('Arial').setFontColor('#263244').setVerticalAlignment('middle');
 
   hoja.getRange('B2:I2').merge();
-  hoja.getRange('B2').setValue('PROYECTO SIS101  ·  SISTEMA DE ALMACÉN');
-  hoja.getRange('B2').setFontSize(22).setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#1a73e8').setFontColor('#ffffff');
-  hoja.setRowHeight(2, 60);
+  hoja.getRange('B2').setValue('SIS101  /  CONTROL DE INVENTARIO');
+  hoja.getRange('B2:I2').setFontSize(20).setFontWeight('bold').setHorizontalAlignment('left').setVerticalAlignment('middle').setBackground('#1E5EFF').setFontColor('#FFFFFF');
+  hoja.setRowHeight(2, 58);
 
   hoja.getRange('B3:I3').merge();
-  hoja.getRange('B3').setValue('Usa el menú  Almacén  para operar el sistema  ·  Los datos se actualizan automáticamente');
-  hoja.getRange('B3').setFontSize(11).setFontStyle('italic').setHorizontalAlignment('center').setVerticalAlignment('middle').setFontColor('#5f6368');
-  hoja.setRowHeight(3, 30);
+  hoja.getRange('B3').setValue('INVENTARIO Y ACTIVIDAD  ·  DATOS ACTUALIZADOS DESDE LA HOJA DE CÁLCULO');
+  hoja.getRange('B3:I3').setFontSize(9).setFontWeight('bold').setHorizontalAlignment('left').setFontColor('#667085');
+  hoja.setRowHeight(3, 32);
 
   hoja.getRange('B5:I5').merge();
   hoja.getRange('B5').setValue('RESUMEN DEL INVENTARIO');
-  hoja.getRange('B5').setFontSize(13).setFontWeight('bold').setFontColor('#1a73e8').setHorizontalAlignment('left').setVerticalAlignment('middle');
-  hoja.setRowHeight(5, 32);
+  hoja.getRange('B5:I5').setFontSize(12).setFontWeight('bold').setFontColor('#1746B0').setHorizontalAlignment('left').setVerticalAlignment('middle');
+  hoja.setRowHeight(5, 34);
 
   hoja.getRange('B7:C7').merge();
   hoja.getRange('B7').setValue('PRODUCTOS REGISTRADOS');
@@ -1110,6 +1216,7 @@ function instalarDashboard() {
   hoja.getRange('B8:C8').merge();
   hoja.getRange('B8').setFormula('=COUNTA(Productos!A2:A)');
   hoja.getRange('B8').setFontSize(28).setFontWeight('bold').setFontColor('#1a73e8').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#e8f0fe');
+  hoja.getRange('B7:C8').setBackground('#EAF1FF').setFontColor('#1746B0');
 
   hoja.getRange('D7:E7').merge();
   hoja.getRange('D7').setValue('COMBOS REGISTRADOS');
@@ -1117,6 +1224,8 @@ function instalarDashboard() {
   hoja.getRange('D8:E8').merge();
   hoja.getRange('D8').setFormula('=COUNTA(Combos!A2:A)');
   hoja.getRange('D8').setFontSize(28).setFontWeight('bold').setFontColor('#b06000').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#fef7e0');
+  hoja.getRange('D7:E8').setBackground('#F1F3F7').setFontColor('#263244');
+  hoja.getRange('D8:E8').setFontColor('#1746B0');
 
   hoja.getRange('F7:G7').merge();
   hoja.getRange('F7').setValue('VALOR INVENTARIO');
@@ -1124,6 +1233,7 @@ function instalarDashboard() {
   hoja.getRange('F8:G8').merge();
   hoja.getRange('F8').setFormula('=SUMPRODUCT(Productos!D2:D, Productos!E2:E)');
   hoja.getRange('F8').setFontSize(26).setFontWeight('bold').setFontColor('#137333').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#e6f4ea').setNumberFormat('#,##0" Bs"');
+  hoja.getRange('F7:G8').setBackground('#EAF5EF').setFontColor('#184D37');
 
   hoja.getRange('H7:I7').merge();
   hoja.getRange('H7').setValue('VENTAS HOY');
@@ -1131,27 +1241,29 @@ function instalarDashboard() {
   hoja.getRange('H8:I8').merge();
   hoja.getRange('H8').setFormula('=SUMIFS(Ventas!H2:H, Ventas!A2:A, TEXT(TODAY(), "yyyy-MM-dd"))');
   hoja.getRange('H8').setFontSize(26).setFontWeight('bold').setFontColor('#c5221f').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#fce8e6').setNumberFormat('#,##0" Bs"');
+  hoja.getRange('H7:I8').setBackground('#F1F3F7').setFontColor('#263244');
+  hoja.getRange('H8:I8').setFontColor('#1746B0');
   hoja.setRowHeight(7, 25);
   hoja.setRowHeight(8, 55);
 
   hoja.getRange('B11:F11').merge();
-  hoja.getRange('B11').setValue('PRODUCTOS POR AGOTARSE  (stock ≤ 10)');
-  hoja.getRange('B11').setFontSize(13).setFontWeight('bold').setFontColor('#b06000').setHorizontalAlignment('left').setVerticalAlignment('middle');
-  hoja.setRowHeight(11, 32);
+  hoja.getRange('B11').setValue('INVENTARIO');
+  hoja.getRange('B11:F11').setFontSize(12).setFontWeight('bold').setFontColor('#1746B0').setHorizontalAlignment('left').setVerticalAlignment('middle');
+  hoja.setRowHeight(11, 34);
 
-  ['ID', 'Nombre', 'Categoría', 'Stock', 'Vasos Sueltos'].forEach((h, i) => {
+  ['ID', 'Nombre', 'Categoría', 'Stock', 'Precio'].forEach((h, i) => {
     const celda = String.fromCharCode(66 + i) + '13';
     hoja.getRange(celda).setValue(h);
     hoja.getRange(celda).setFontSize(11).setFontWeight('bold').setFontColor('#ffffff').setBackground('#5f6368').setHorizontalAlignment('center').setVerticalAlignment('middle');
   });
   hoja.setRowHeight(13, 28);
-  hoja.getRange('B14').setFormula('=IFERROR(QUERY(Productos!A2:H, "select A, B, C, E, H where A is not null and E is not null and E <= 10 order by E asc limit 15", 0), "Sin productos por agotarse")');
+  hoja.getRange('B14').setFormula('=IFERROR(QUERY(Productos!A2:H, "select A, B, C, E, D where A is not null order by B limit 15", 0), "Sin productos registrados")');
   for (let f = 14; f <= 29; f++) hoja.setRowHeight(f, 24);
 
   hoja.getRange('B31:H31').merge();
-  hoja.getRange('B31').setValue('ÚLTIMAS 10 VENTAS');
-  hoja.getRange('B31').setFontSize(13).setFontWeight('bold').setFontColor('#1a73e8').setHorizontalAlignment('left').setVerticalAlignment('middle');
-  hoja.setRowHeight(31, 32);
+  hoja.getRange('B31').setValue('ACTIVIDAD RECIENTE');
+  hoja.getRange('B31:H31').setFontSize(12).setFontWeight('bold').setFontColor('#1746B0').setHorizontalAlignment('left').setVerticalAlignment('middle');
+  hoja.setRowHeight(31, 34);
 
   ['Fecha', 'Hora', 'Tipo', 'ID', 'Nombre', 'Cant.', 'Total'].forEach((h, i) => {
     const celda = String.fromCharCode(66 + i) + '33';
@@ -1164,8 +1276,8 @@ function instalarDashboard() {
 
   hoja.getRange('B46:C46').merge();
   hoja.getRange('B46').setValue('TOP 5 MÁS VENDIDOS');
-  hoja.getRange('B46').setFontSize(13).setFontWeight('bold').setFontColor('#137333').setHorizontalAlignment('left').setVerticalAlignment('middle');
-  hoja.setRowHeight(46, 32);
+  hoja.getRange('B46:C46').setFontSize(12).setFontWeight('bold').setFontColor('#1746B0').setHorizontalAlignment('left').setVerticalAlignment('middle');
+  hoja.setRowHeight(46, 34);
 
   hoja.getRange('B48').setValue('Producto / Combo');
   hoja.getRange('C48').setValue('Cantidad vendida');
@@ -1174,171 +1286,49 @@ function instalarDashboard() {
   hoja.getRange('B49').setFormula('=IFERROR(QUERY(Ventas!A2:H, "select E, sum(F) where E is not null group by E order by sum(F) desc limit 5", 0), "Sin ventas registradas")');
   for (let f = 49; f <= 54; f++) hoja.setRowHeight(f, 24);
 
-  hoja.getRange('B56:I56').merge();
-  hoja.getRange('B56').setValue('MANUAL DE USO RÁPIDO');
-  hoja.getRange('B56').setFontSize(13).setFontWeight('bold').setFontColor('#ffffff').setBackground('#1a73e8').setHorizontalAlignment('center').setVerticalAlignment('middle');
-  hoja.setRowHeight(56, 34);
-
-  const tareas = [
-    ['🛒', 'Vender un vaso', 'Almacén → Ventas → Vender Vaso'],
-    ['🍾', 'Vender un combo', 'Almacén → Ventas → Vender Combo'],
-    ['➕', 'Agregar producto', 'Almacén → Productos → Agregar Producto'],
-    ['✏️', 'Modificar producto', 'Almacén → Productos → Modificar Producto (precio, stock, nombre)'],
-    ['🗑️', 'Eliminar producto', 'Almacén → Productos → Eliminar Producto'],
-    ['🎁', 'Agregar combo', 'Almacén → Combos → Agregar Combo'],
-    ['📁', 'Agregar categoría', 'Almacén → Categorías → Agregar Categoría'],
-    ['🗂️', 'Eliminar categoría', 'Almacén → Categorías → Eliminar Categoría (borra productos y combos en cascada)'],
-    ['🔍', 'Verificar integridad', 'Almacén → Verificar Integridad (revisa IDs, referencias y combos rotos)']
-  ];
-
-  tareas.forEach((t, i) => {
-    const fila = 57 + i;
-    hoja.getRange(`B${fila}:C${fila}`).merge();
-    hoja.getRange(`B${fila}`).setValue(`${t[0]}  ${t[1]}`);
-    hoja.getRange(`B${fila}`).setFontSize(11).setFontWeight('bold').setFontColor('#1a73e8').setBackground('#e8f0fe').setHorizontalAlignment('left').setVerticalAlignment('middle');
-    hoja.getRange(`D${fila}:I${fila}`).merge();
-    hoja.getRange(`D${fila}`).setValue(t[2]);
-    hoja.getRange(`D${fila}`).setFontSize(11).setFontColor('#3c4043').setBackground('#ffffff').setHorizontalAlignment('left').setVerticalAlignment('middle');
-    hoja.setRowHeight(fila, 26);
+  hoja.getRange('B56:I100').breakApart().clearContent().clearFormat();
+  hoja.getRange('B2:I55').setFontFamily('Arial').setFontColor('#263244').setVerticalAlignment('middle');
+  hoja.getRange('B2:I2').setBackground('#1E5EFF').setFontColor('#FFFFFF');
+  hoja.getRange('B3:I3').setFontColor('#667085');
+  ['B5:I5', 'B11:F11', 'B31:H31', 'B46:C46'].forEach(rango =>
+    hoja.getRange(rango).setFontColor('#1746B0').setFontWeight('bold')
+  );
+  hoja.getRange('B7:C8').setBackground('#EAF1FF');
+  hoja.getRange('B7:C7').setFontColor('#52627A');
+  hoja.getRange('B8:C8').setFontColor('#1746B0');
+  hoja.getRange('D7:E8').setBackground('#F1F3F7');
+  hoja.getRange('D7:E7').setFontColor('#52627A');
+  hoja.getRange('D8:E8').setFontColor('#1746B0');
+  hoja.getRange('F7:G8').setBackground('#EAF5EF');
+  hoja.getRange('F7:G7').setFontColor('#52627A');
+  hoja.getRange('F8:G8').setFontColor('#184D37');
+  hoja.getRange('H7:I8').setBackground('#F1F3F7');
+  hoja.getRange('H7:I7').setFontColor('#52627A');
+  hoja.getRange('H8:I8').setFontColor('#1746B0');
+  hoja.getRange('B13:F13').setBackground('#1E5EFF').setFontColor('#FFFFFF').setFontWeight('bold');
+  hoja.getRange('B33:H33').setBackground('#1E5EFF').setFontColor('#FFFFFF').setFontWeight('bold');
+  hoja.getRange('B48:C48').setBackground('#1E5EFF').setFontColor('#FFFFFF').setFontWeight('bold');
+  [
+    ['B14:F28', 15, 5],
+    ['B34:H44', 11, 7],
+    ['B49:C54', 6, 2],
+  ].forEach(([rango, filas, columnas]) => {
+    const colores = Array.from({ length: filas }, (_, fila) =>
+      Array.from({ length: columnas }, () => fila % 2 === 0 ? '#FFFFFF' : '#F0F4FA')
+    );
+    hoja.getRange(rango).setBackgrounds(colores).setFontColor('#263244');
   });
+  hoja.getRange('F14:F28').setNumberFormat('#,##0.00" Bs"');
+  hoja.getRange('H34:H44').setNumberFormat('#,##0.00" Bs"');
+  ['B7:C8', 'D7:E8', 'F7:G8', 'H7:I8', 'B13:F28', 'B33:H44', 'B48:C54'].forEach(rango =>
+    hoja.getRange(rango).setBorder(true, true, true, true, false, false, '#D7DEE9', SpreadsheetApp.BorderStyle.SOLID)
+  );
 
-  const filaAdv = 57 + tareas.length + 1;
-
-  hoja.getRange(`B${filaAdv}:I${filaAdv}`).merge();
-  hoja.getRange(`B${filaAdv}`).setValue('ADVERTENCIAS IMPORTANTES');
-  hoja.getRange(`B${filaAdv}`).setFontSize(13).setFontWeight('bold').setFontColor('#ffffff').setBackground('#b06000').setHorizontalAlignment('center').setVerticalAlignment('middle');
-  hoja.setRowHeight(filaAdv, 34);
-
-  const advertencias = [
-    '⚠️ Las categorías solo se modifican desde el menú Almacén. No las edites directamente en la hoja.',
-    '⚠️ No cambies manualmente la columna ID en Productos ni en Combos. Los IDs no se reutilizan.',
-    '⚠️ No reordenes filas ni columnas en Productos, Combos, Categorias ni Ventas.',
-    '⚠️ Para cambiar precio, stock o nombre de un producto usa "Modificar Producto".',
-    '⚠️ Las ventas quedan registradas en la pestaña Ventas como histórico. No las borres si quieres conservar el reporte.',
-    '⚠️ Si algo sale mal, recupera el archivo con Google Sheets → Archivo → Historial de versiones.'
-  ];
-
-  advertencias.forEach((a, i) => {
-    const fila = filaAdv + 2 + i;
-    hoja.getRange(`B${fila}:I${fila}`).merge();
-    hoja.getRange(`B${fila}`).setValue(a);
-    hoja.getRange(`B${fila}`).setFontSize(11).setFontColor('#8a4b00').setBackground('#fef7e0').setHorizontalAlignment('left').setVerticalAlignment('middle').setWrap(true);
-    hoja.setRowHeight(fila, 30);
-  });
-
+  estilizarHojasDatos_();
   SpreadsheetApp.flush();
+  hoja.insertRowsBefore(1, 1);
   ss.setActiveSheet(hoja);
-  SpreadsheetApp.getUi().alert('✅ Dashboard y manual instalados en la pestaña "Proyecto SIS101".');
-}
-
-function fixCompletoDashboard() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let hoja = ss.getSheetByName('Proyecto SIS101');
-  if (!hoja) hoja = ss.insertSheet('Proyecto SIS101', 0);
-  hoja.clear();
-  hoja.clearFormats();
-  hoja.setHiddenGridlines(true);
-  hoja.setColumnWidth(1, 25);
-  for (let c = 2; c <= 9; c++) hoja.setColumnWidth(c, 115);
-
-  hoja.getRange('B2:I2').merge();
-  hoja.getRange('B2').setValue('PROYECTO SIS101  ·  SISTEMA DE ALMACÉN');
-  hoja.getRange('B2').setFontSize(22).setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#1a73e8').setFontColor('#ffffff');
-  hoja.setRowHeight(2, 60);
-
-  hoja.getRange('B3:I3').merge();
-  hoja.getRange('B3').setValue('Usa el menú  Almacén  para operar el sistema  ·  Los datos se actualizan automáticamente');
-  hoja.getRange('B3').setFontSize(11).setFontStyle('italic').setHorizontalAlignment('center').setVerticalAlignment('middle').setFontColor('#5f6368');
-  hoja.setRowHeight(3, 30);
-
-  hoja.getRange('B5:I5').merge();
-  hoja.getRange('B5').setValue('RESUMEN DEL INVENTARIO');
-  hoja.getRange('B5').setFontSize(13).setFontWeight('bold').setFontColor('#1a73e8').setHorizontalAlignment('left').setVerticalAlignment('middle');
-  hoja.setRowHeight(5, 32);
-
-  hoja.getRange('B7:C7').merge();
-  hoja.getRange('B7').setValue('PRODUCTOS REGISTRADOS');
-  hoja.getRange('B7').setFontSize(10).setFontWeight('bold').setFontColor('#5f6368').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#e8f0fe');
-  hoja.getRange('B8:C8').merge();
-  hoja.getRange('B8').setFormula('=COUNTA(Productos!A2:A)');
-  hoja.getRange('B8').setFontSize(28).setFontWeight('bold').setFontColor('#1a73e8').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#e8f0fe');
-
-  hoja.getRange('D7:E7').merge();
-  hoja.getRange('D7').setValue('COMBOS REGISTRADOS');
-  hoja.getRange('D7').setFontSize(10).setFontWeight('bold').setFontColor('#5f6368').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#fef7e0');
-  hoja.getRange('D8:E8').merge();
-  hoja.getRange('D8').setFormula('=COUNTA(Combos!A2:A)');
-  hoja.getRange('D8').setFontSize(28).setFontWeight('bold').setFontColor('#b06000').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#fef7e0');
-
-  hoja.getRange('F7:G7').merge();
-  hoja.getRange('F7').setValue('VALOR INVENTARIO');
-  hoja.getRange('F7').setFontSize(10).setFontWeight('bold').setFontColor('#5f6368').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#e6f4ea');
-  hoja.getRange('F8:G8').merge();
-  hoja.getRange('F8').setFormula('=SUMPRODUCT(Productos!D2:D, Productos!E2:E)');
-  hoja.getRange('F8').setFontSize(26).setFontWeight('bold').setFontColor('#137333').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#e6f4ea').setNumberFormat('#,##0" Bs"');
-
-  hoja.getRange('H7:I7').merge();
-  hoja.getRange('H7').setValue('VENTAS HOY');
-  hoja.getRange('H7').setFontSize(10).setFontWeight('bold').setFontColor('#5f6368').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#fce8e6');
-  hoja.getRange('H8:I8').merge();
-  hoja.getRange('H8').setFormula('=SUMIFS(Ventas!H2:H, Ventas!A2:A, TEXT(TODAY(), "dd/MM/yyyy"))');
-  hoja.getRange('H8').setFontSize(26).setFontWeight('bold').setFontColor('#c5221f').setHorizontalAlignment('center').setVerticalAlignment('middle').setBackground('#fce8e6').setNumberFormat('#,##0" Bs"');
-  hoja.setRowHeight(7, 25);
-  hoja.setRowHeight(8, 55);
-
-  hoja.getRange('B11:F11').merge();
-  hoja.getRange('B11').setValue('PRODUCTOS POR AGOTARSE  (stock ≤ 10)');
-  hoja.getRange('B11').setFontSize(13).setFontWeight('bold').setFontColor('#b06000').setHorizontalAlignment('left').setVerticalAlignment('middle');
-  hoja.setRowHeight(11, 32);
-
-  ['ID', 'Nombre', 'Categoría', 'Stock', 'Vasos Sueltos'].forEach((h, i) => {
-    const celda = String.fromCharCode(66 + i) + '13';
-    hoja.getRange(celda).setValue(h);
-    hoja.getRange(celda).setFontSize(11).setFontWeight('bold').setFontColor('#ffffff').setBackground('#5f6368').setHorizontalAlignment('center').setVerticalAlignment('middle');
-  });
-  hoja.setRowHeight(13, 28);
-
-  hoja.getRange('B14').setFormula(
-    '=IFERROR(QUERY(Productos!A2:H, "select A, B, C, E, H where A is not null and E is not null and E <= 10 order by E asc limit 15", 0), "Sin productos por agotarse")'
-  );
-
-  for (let f = 14; f <= 29; f++) hoja.setRowHeight(f, 24);
-
-  hoja.getRange('B31:H31').merge();
-  hoja.getRange('B31').setValue('ÚLTIMAS 10 VENTAS');
-  hoja.getRange('B31').setFontSize(13).setFontWeight('bold').setFontColor('#1a73e8').setHorizontalAlignment('left').setVerticalAlignment('middle');
-  hoja.setRowHeight(31, 32);
-
-  ['Fecha', 'Hora', 'Tipo', 'ID', 'Nombre', 'Cant.', 'Total'].forEach((h, i) => {
-    const celda = String.fromCharCode(66 + i) + '33';
-    hoja.getRange(celda).setValue(h);
-    hoja.getRange(celda).setFontSize(11).setFontWeight('bold').setFontColor('#ffffff').setBackground('#5f6368').setHorizontalAlignment('center').setVerticalAlignment('middle');
-  });
-  hoja.setRowHeight(33, 28);
-
-  hoja.getRange('B34').setFormula(
-    '=IFERROR(QUERY(Ventas!A2:H, "select A, B, C, D, E, F, H order by A desc, B desc limit 10", 0), "Sin ventas registradas")'
-  );
-  for (let f = 34; f <= 44; f++) hoja.setRowHeight(f, 24);
-
-  hoja.getRange('B46:C46').merge();
-  hoja.getRange('B46').setValue('TOP 5 MÁS VENDIDOS');
-  hoja.getRange('B46').setFontSize(13).setFontWeight('bold').setFontColor('#137333').setHorizontalAlignment('left').setVerticalAlignment('middle');
-  hoja.setRowHeight(46, 32);
-
-  hoja.getRange('B48').setValue('Producto / Combo');
-  hoja.getRange('C48').setValue('Cantidad vendida');
-  ['B48', 'C48'].forEach(c => hoja.getRange(c).setFontSize(11).setFontWeight('bold').setFontColor('#ffffff').setBackground('#5f6368').setHorizontalAlignment('center').setVerticalAlignment('middle'));
-  hoja.setRowHeight(48, 28);
-
-  hoja.getRange('B49').setFormula(
-    '=IFERROR(QUERY(Ventas!A2:H, "select E, sum(F) where E is not null group by E order by sum(F) desc limit 5 label sum(F) \'Cantidad\'", 0), "Sin ventas registradas")'
-  );
-  for (let f = 49; f <= 54; f++) hoja.setRowHeight(f, 24);
-
-  SpreadsheetApp.flush();
-  Logger.log('Dashboard reacomodado. B14: ' + hoja.getRange('B14').getDisplayValue());
-  ss.setActiveSheet(hoja);
+  SpreadsheetApp.getUi().alert('Dashboard instalado con sus títulos y contenido desplazados una fila hacia abajo.');
 }
 
 function abrirDialogoAgregarCombo() {
@@ -1487,61 +1477,4 @@ function ejecutarModificarProductoDesdeDialogo(idProducto, nombre, precio, stock
       return { ok: false, mensaje: 'Error: ' + e.message };
     }
   });
-}
-
-function compactarTablasDashboard() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const hoja = ss.getSheetByName('Proyecto SIS101');
-  if (!hoja) return;
-  if (hoja.getLastRow() < 56) return;
-  const b11 = String(hoja.getRange('B11').getValue() || '');
-  if (b11.indexOf('PRODUCTOS POR AGOTARSE') === -1) return;
-
-  hoja.showRows(1, hoja.getMaxRows());
-
-  let lastProd = 13;
-  const prodData = hoja.getRange('B14:F28').getValues();
-  for (let i = 0; i < prodData.length; i++) {
-    const tieneContenido = prodData[i].some(v => v !== '' && v !== null);
-    if (tieneContenido) lastProd = 14 + i;
-    else break;
-  }
-  if (lastProd < 28) hoja.hideRows(lastProd + 1, 30 - lastProd);
-
-  let lastVentas = 33;
-  const ventasData = hoja.getRange('B34:H43').getValues();
-  for (let i = 0; i < ventasData.length; i++) {
-    const tieneContenido = ventasData[i].some(v => v !== '' && v !== null);
-    if (tieneContenido) lastVentas = 34 + i;
-    else break;
-  }
-  if (lastVentas < 43) hoja.hideRows(lastVentas + 1, 45 - lastVentas);
-
-  let lastTop = 48;
-  const topData = hoja.getRange('B49:C53').getValues();
-  for (let i = 0; i < topData.length; i++) {
-    const tieneContenido = topData[i].some(v => v !== '' && v !== null);
-    if (tieneContenido) lastTop = 49 + i;
-    else break;
-  }
-  if (lastTop < 53) hoja.hideRows(lastTop + 1, 55 - lastTop);
-
-  SpreadsheetApp.flush();
-}
-
-function fixTopVentas() {
-  const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Proyecto SIS101');
-  if (!hoja) { Logger.log('❌ No existe dashboard'); return; }
-  
-  hoja.getRange('B49').setFormula(
-    '=IFERROR(QUERY(Ventas!A2:H, "select E, sum(F) where E is not null group by E order by sum(F) desc limit 5", 0), "Sin ventas registradas")'
-  );
-  SpreadsheetApp.flush();
-  
-  Logger.log('B49: "' + hoja.getRange('B49').getDisplayValue() + '"');
-  Logger.log('C49: "' + hoja.getRange('C49').getDisplayValue() + '"');
-  Logger.log('B50: "' + hoja.getRange('B50').getDisplayValue() + '"');
-  Logger.log('C50: "' + hoja.getRange('C50').getDisplayValue() + '"');
-  
-  compactarTablasDashboard();
 }

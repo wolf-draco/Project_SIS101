@@ -1,4 +1,4 @@
-const { Producto, Combo, Almacen } = require("./Blu.js");
+const { Producto, Combo, Almacen } = require("../src/js/Blu.js");
 
 function titulo(texto) {
   console.log(`\n===== ${texto} =====`);
