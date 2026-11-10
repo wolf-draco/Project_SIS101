@@ -12,6 +12,7 @@
 ## Contenido
 
 - [Funciones principales](#funciones-principales)
+- [Accesos directos](#accesos-directos)
 - [Inicio rápido](#inicio-rápido)
 - [Aplicación web](#aplicación-web)
 - [Google Sheets y Apps Script](#google-sheets-y-apps-script)
@@ -32,6 +33,11 @@
 La aplicación web usa una interfaz oscura con acentos azules. El Dashboard de
 Google Sheets utiliza una paleta clara para mantener la lectura cómoda en la
 hoja de cálculo.
+
+## Accesos directos
+
+- **[Abrir la aplicación web](https://script.google.com/macros/s/AKfycbyISVdIqtMvDo7lrWgAG8JEtAEefIMuQ2coS6ZwyBmd0Rqkaa_V2h4h7qn-htvBro0x/exec)**
+- **[Abrir la hoja de cálculo](https://docs.google.com/spreadsheets/d/1w2viV68t2-jmZ62o1Y7ixrGlVyDx4uwUprrwtsUJJHY/edit?gid=0#gid=0)**
 
 ## Inicio rápido
 
