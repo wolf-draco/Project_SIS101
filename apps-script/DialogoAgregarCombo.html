@@ -50,7 +50,7 @@
 
   <div class="campo">
     <label for="nombre">Nombre del combo</label>
-    <input type="text" id="nombre" placeholder="Ej: Combo Mojito" oninput="actualizar()">
+    <input type="text" id="nombre" maxlength="70" placeholder="Ej: Combo Mojito" oninput="actualizar()">
   </div>
 
   <div class="campo">
@@ -93,8 +93,8 @@
       const fila = document.createElement('div');
       fila.className = 'fila-componente';
       fila.innerHTML = `
-        <select onchange="actualizar()"></select>
-        <input type="number" min="1" value="1" oninput="actualizar()">
+        <select required onchange="actualizar()"></select>
+        <input type="number" min="1" step="1" value="1" oninput="actualizar()" required>
         <button type="button" class="btn-eliminar" onclick="eliminarFila(this)">×</button>
       `;
       cont.appendChild(fila);
@@ -133,23 +133,21 @@
     function calcularDisponibles(componentes) {
       if (componentes.length === 0) return 0;
       return componentes.reduce((menor, c) => {
-        if (!c.producto) return 0;
         const veces = Math.floor(c.producto.stock / c.cantidad);
         return (menor === -1 || veces < menor) ? veces : menor;
       }, -1);
     }
 
     function obtenerComponentes() {
-      return Array.from(document.querySelectorAll('.fila-componente')).map(fila => {
-        const id = fila.querySelector('select').value;
-        const cant = parseInt(fila.querySelector('input').value) || 0;
-        return { id, cantidad: cant };
-      }).filter(c => c.id && c.cantidad > 0);
+      return Array.from(document.querySelectorAll('.fila-componente')).map(fila => ({
+        id: fila.querySelector('select').value,
+        cantidad: Number(fila.querySelector('input').value)
+      }));
     }
 
     function actualizar() {
       const nombre = document.getElementById('nombre').value.trim();
-      const precio = parseFloat(document.getElementById('precio').value) || 0;
+      const precio = Number(document.getElementById('precio').value);
       const componentes = obtenerComponentes();
       const info = document.getElementById('info');
       const btn = document.getElementById('btnGuardar');
@@ -160,15 +158,14 @@
         return;
       }
 
-      if (componentes.length === 0) {
-        info.innerHTML = 'Añade al menos un componente con cantidad válida.';
+      if (componentes.length === 0 || componentes.some(c => !c.id || !Number.isInteger(c.cantidad) || c.cantidad <= 0)) {
+        info.textContent = 'Selecciona un producto y una cantidad entera mayor a 0 para cada componente.';
         btn.disabled = true;
         return;
       }
 
       const ids = componentes.map(c => c.id);
-      const hayDuplicado = ids.length !== new Set(ids).size;
-      if (hayDuplicado) {
+      if (ids.length !== new Set(ids).size) {
         info.innerHTML = '<span style="color:#c5221f">Hay productos repetidos. Cada producto debe aparecer una sola vez.</span>';
         btn.disabled = true;
         return;
@@ -177,30 +174,34 @@
       const componentesConProducto = componentes.map(c => ({
         producto: productos.find(p => p.id === c.id),
         cantidad: c.cantidad
-      })).filter(c => c.producto);
-
-      const disp = calcularDisponibles(componentesConProducto);
-      const dispClass = disp <= 0 ? 'bajo' : '';
-
-      let html = `<div>Combos que se pueden armar: <span class="disponibles ${dispClass}">${disp}</span></div>`;
-
-      if (componentesConProducto.some(c => c.producto.stock < c.cantidad)) {
-        html += '<div style="color:#c5221f;font-size:12px;margin-top:4px">Algún componente no tiene stock suficiente para al menos 1 combo.</div>';
+      }));
+      if (componentesConProducto.some(c => !c.producto)) {
+        info.textContent = 'Uno de los productos seleccionados ya no está disponible.';
+        btn.disabled = true;
+        return;
       }
 
-      const nombreDuplicado = nombresExistentes.some(n => n.toLowerCase() === nombre.toLowerCase());
+      const disponibles = calcularDisponibles(componentesConProducto);
+      const claseDisponibles = disponibles <= 0 ? 'bajo' : '';
+      let html = `<div>Combos que se pueden armar: <span class="disponibles ${claseDisponibles}">${disponibles}</span></div>`;
+      if (disponibles <= 0) {
+        html += '<div style="color:#c5221f;font-size:12px;margin-top:4px">No hay stock suficiente para armar al menos 1 combo.</div>';
+      }
+
+      const nombreDuplicado = nombresExistentes.some(combo =>
+        combo.nombre.toLowerCase() === nombre.toLowerCase()
+      );
       if (nombre && nombreDuplicado) {
         html += '<div style="color:#c5221f;font-size:12px;margin-top:4px">Ya existe un combo con ese nombre.</div>';
       }
 
       info.innerHTML = html;
-
-      btn.disabled = !(nombre.length > 0 && precio >= 0 && !hayDuplicado && !nombreDuplicado && disp > 0);
+      btn.disabled = !(nombre.length > 0 && Number.isFinite(precio) && precio >= 0 && !nombreDuplicado && disponibles > 0);
     }
 
     function guardar() {
       const nombre = document.getElementById('nombre').value.trim();
-      const precio = parseFloat(document.getElementById('precio').value) || 0;
+      const precio = Number(document.getElementById('precio').value);
       const componentes = obtenerComponentes();
       const btn = document.getElementById('btnGuardar');
       const msg = document.getElementById('mensaje');
@@ -226,4 +227,4 @@
     }
   </script>
 </body>
-</html>KO
+</html>

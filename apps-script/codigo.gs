@@ -5,6 +5,7 @@ const NOMBRE_HOJA_VENTAS = 'Ventas';
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('WebApp')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setTitle('Almacén | SIS101');
 }
 
@@ -23,6 +24,7 @@ function onOpen() {
       .addItem('Ver Productos', 'menuVerProductos'))
     .addSubMenu(ui.createMenu('Combos')
       .addItem('Agregar Combo', 'abrirDialogoAgregarCombo')
+      .addItem('Modificar Combo', 'abrirDialogoModificarCombo')
       .addItem('Ver Combos', 'menuVerCombos'))
     .addSubMenu(ui.createMenu('Categorías')
       .addItem('Agregar Categoría', 'menuAgregarCategoria')
@@ -1337,16 +1339,38 @@ function abrirDialogoAgregarCombo() {
   SpreadsheetApp.getUi().showModalDialog(html, 'Agregar Combo');
 }
 
+function abrirDialogoModificarCombo() {
+  const html = HtmlService.createTemplateFromFile('DialogoModificarCombo')
+    .evaluate().setWidth(520).setHeight(720);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Modificar Combo');
+}
+
 function getDatosParaAgregarCombo() {
   const almacen = cargarAlmacenDesdeSheet();
+  return datosDialogoCombo_(almacen);
+}
+
+function getDatosParaModificarCombo() {
+  const almacen = cargarAlmacenDesdeSheet();
+  return datosDialogoCombo_(almacen);
+}
+
+function datosDialogoCombo_(almacen) {
   const productos = almacen.productos.map(p => ({
     id: p.id,
     nombre: p.nombre,
     stock: p.stock,
     categoria: p.categoria
   }));
-  const nombresExistentes = almacen.combos.map(c => c.nombre);
-  return { productos, nombresExistentes };
+  const combos = almacen.combos.map(c => ({
+    id: c.id,
+    nombre: c.nombre,
+    precio: Number(c.precio),
+    componentes: c.componentes.map(parte => ({ id: parte.producto.id, cantidad: Number(parte.cantidad) })),
+    componentesRotos: c.componentesRotos || []
+  }));
+  const nombresExistentes = combos.map(c => ({ id: c.id, nombre: c.nombre }));
+  return { productos, combos, nombresExistentes };
 }
 
 function ejecutarAgregarComboDesdeDialogo(nombre, precio, componentes) {
@@ -1395,6 +1419,52 @@ function ejecutarAgregarComboDesdeDialogo(nombre, precio, componentes) {
 
       guardarAlmacenEnSheet(almacen);
       return { ok: true, mensaje: `Combo "${nombre}" agregado con ID ${nuevoCombo.id}.` };
+    } catch (e) {
+      return { ok: false, mensaje: 'Error: ' + e.message };
+    }
+  });
+}
+
+function ejecutarModificarComboDesdeDialogo(idCombo, nombre, precio, componentes) {
+  return conLock(() => {
+    try {
+      const id = String(idCombo || '');
+      const nombreLimpio = String(nombre || '').trim();
+      const precioNumero = Number(precio);
+      if (!id) return { ok: false, mensaje: 'Selecciona un combo para modificar.' };
+      if (!nombreLimpio) return { ok: false, mensaje: 'El nombre no puede estar vacío.' };
+      if (!Number.isFinite(precioNumero) || precioNumero < 0) {
+        return { ok: false, mensaje: 'El precio debe ser un número válido y no negativo.' };
+      }
+      if (!Array.isArray(componentes) || componentes.length === 0) {
+        return { ok: false, mensaje: 'El combo debe tener al menos un componente.' };
+      }
+
+      const ids = componentes.map(c => String(c.id || ''));
+      if (ids.some(idProducto => !idProducto) || ids.length !== new Set(ids).size) {
+        return { ok: false, mensaje: 'Cada componente debe tener un producto único.' };
+      }
+      if (componentes.some(c => !Number.isInteger(Number(c.cantidad)) || Number(c.cantidad) <= 0)) {
+        return { ok: false, mensaje: 'Las cantidades deben ser números enteros mayores a 0.' };
+      }
+
+      const almacen = cargarAlmacenDesdeSheet();
+      const combo = almacen.buscarCombo(id);
+      if (!combo) return { ok: false, mensaje: `No existe el combo ${id}.` };
+      if (almacen.combos.some(c => c.id !== id && c.nombre.toLowerCase() === nombreLimpio.toLowerCase())) {
+        return { ok: false, mensaje: `Ya existe otro combo llamado "${nombreLimpio}".` };
+      }
+
+      const componentesObjetos = [];
+      for (const componente of componentes) {
+        const producto = almacen.buscarProducto(String(componente.id));
+        if (!producto) return { ok: false, mensaje: `No existe el producto ${componente.id}.` };
+        componentesObjetos.push({ producto, cantidad: Number(componente.cantidad) });
+      }
+
+      combo.modificar(nombreLimpio, precioNumero, componentesObjetos);
+      guardarAlmacenEnSheet(almacen);
+      return { ok: true, mensaje: `Combo "${nombreLimpio}" (${id}) modificado.` };
     } catch (e) {
       return { ok: false, mensaje: 'Error: ' + e.message };
     }

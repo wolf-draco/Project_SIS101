@@ -238,7 +238,7 @@ function renderCombos() {
     const available = broken ? 0 : combo.disponibles();
     const parts = combo.componentes.map((part) => `${part.cantidad} × ${escapeHTML(part.producto.nombre)}`).join(" · ");
     const missing = broken ? ` · Faltan: ${combo.componentesRotos.map(escapeHTML).join(", ")}` : "";
-    return `<tr><td><div class="item-cell"><span class="item-avatar combo-avatar">${escapeHTML(initials(combo.nombre))}</span><span class="item-name"><strong>${escapeHTML(combo.nombre)}</strong><small>${parts}${escapeHTML(missing)}</small></span></div></td><td class="mono">${escapeHTML(combo.id)}</td><td>${money(combo.precio)}</td><td><span class="stock-value ${available === 0 ? "stock-low" : ""}">${available}</span></td><td>${broken ? '<span class="pill danger">Componentes faltantes</span>' : available > 0 ? '<span class="pill">Disponible</span>' : '<span class="pill danger">Sin stock</span>'}</td><td><div class="row-actions"><button class="row-action delete" data-action="delete-combo" data-id="${escapeHTML(combo.id)}" title="Eliminar combo" aria-label="Eliminar ${escapeHTML(combo.nombre)}">×</button></div></td></tr>`;
+    return `<tr><td><div class="item-cell"><span class="item-avatar combo-avatar">${escapeHTML(initials(combo.nombre))}</span><span class="item-name"><strong>${escapeHTML(combo.nombre)}</strong><small>${parts}${escapeHTML(missing)}</small></span></div></td><td class="mono">${escapeHTML(combo.id)}</td><td>${money(combo.precio)}</td><td><span class="stock-value ${available === 0 ? "stock-low" : ""}">${available}</span></td><td>${broken ? '<span class="pill danger">Componentes faltantes</span>' : available > 0 ? '<span class="pill">Disponible</span>' : '<span class="pill danger">Sin stock</span>'}</td><td><div class="row-actions"><button class="row-action" data-action="edit-combo" data-id="${escapeHTML(combo.id)}" title="Editar combo" aria-label="Editar ${escapeHTML(combo.nombre)}">✎</button><button class="row-action delete" data-action="delete-combo" data-id="${escapeHTML(combo.id)}" title="Eliminar combo" aria-label="Eliminar ${escapeHTML(combo.nombre)}">×</button></div></td></tr>`;
   }).join("");
   return `${pageHeading("CATÁLOGO", "Combos", "Arma paquetes con productos del inventario y controla su disponibilidad.", '<button class="button button-primary" data-action="add-combo"><span class="button-plus">+</span> Nuevo combo</button>')}
     <section class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Combo y componentes</th><th>ID</th><th>Precio</th><th>Disponibles</th><th>Estado</th><th></th></tr></thead><tbody>${rows || emptyTable("Aún no hay combos", "Crea un combo a partir de productos registrados.", '<button class="button button-primary button-small" data-action="add-combo">Crear primer combo</button>', 6)}</tbody></table></div><footer class="table-footer"><span>${almacen.combos.length} combos registrados</span><span>La disponibilidad se calcula con el stock actual</span></footer></section>`;
@@ -344,32 +344,53 @@ function addStockForm(product) {
   });
 }
 
-function comboForm() {
+function comboForm(combo = null) {
+  const editing = Boolean(combo);
   if (almacen.productos.length === 0) return showToast("Agrega productos antes de crear un combo.", true);
-  openModal("Nuevo combo", `<form id="combo-form"><div class="form-field"><label for="combo-name">Nombre del combo</label><input class="field" id="combo-name" maxlength="70" placeholder="Ej. Combo de la casa" required></div><div class="form-field"><label for="combo-price">Precio del combo (Bs)</label><input class="field" id="combo-price" type="number" min="0" step="0.01" value="0" required></div><div class="form-field"><label>Componentes</label><div class="component-list" id="component-list"></div><button class="component-add" type="button" id="add-component">+ Añadir componente</button></div><p class="form-hint">Cada producto solo puede aparecer una vez. Los combos disponibles dependen del stock actual.</p><div class="form-actions"><button class="button button-secondary" type="button" data-action="close-modal">Cancelar</button><button class="button button-primary" type="submit">Crear combo</button></div></form>`);
+  const missingComponents = combo?.componentesRotos?.length
+    ? `<p class="form-hint">Faltan productos del combo original: ${combo.componentesRotos.map(escapeHTML).join(", ")}. Al guardar, el combo se reemplazará por los componentes seleccionados.</p>`
+    : "";
+  openModal(editing ? "Editar combo" : "Nuevo combo", `<form id="combo-form"><div class="form-field"><label for="combo-name">Nombre del combo</label><input class="field" id="combo-name" maxlength="70" value="${escapeHTML(combo?.nombre || "")}" placeholder="Ej. Combo de la casa" required></div><div class="form-field"><label for="combo-price">Precio del combo (Bs)</label><input class="field" id="combo-price" type="number" min="0" step="0.01" value="${combo?.precio ?? 0}" required></div><div class="form-field"><label>Componentes</label><div class="component-list" id="component-list"></div><button class="component-add" type="button" id="add-component">+ Añadir componente</button></div>${missingComponents}<p class="form-hint">Cada producto solo puede aparecer una vez. Los combos disponibles dependen del stock actual.</p><div class="form-actions"><button class="button button-secondary" type="button" data-action="close-modal">Cancelar</button><button class="button button-primary" type="submit">${editing ? "Guardar cambios" : "Crear combo"}</button></div></form>`);
   const componentList = document.getElementById("component-list");
-  const addComponent = () => {
+  const addComponent = (selectedId = "", quantity = 1) => {
     const usedIds = [...componentList.querySelectorAll("select")].map((select) => select.value);
     const available = almacen.productos.filter((product) => !usedIds.includes(product.id));
     if (!available.length) return showToast("Ya agregaste todos los productos disponibles.", true);
     const row = document.createElement("div");
     row.className = "component-row";
-    row.innerHTML = `<select class="select-field" required>${available.map((product) => `<option value="${escapeHTML(product.id)}">${escapeHTML(product.id)} · ${escapeHTML(product.nombre)}</option>`).join("")}</select><input class="field" type="number" min="1" step="1" value="1" aria-label="Cantidad" required><button class="row-action delete" type="button" aria-label="Quitar componente">×</button>`;
+    row.innerHTML = `<select class="select-field" required>${available.map((product) => `<option value="${escapeHTML(product.id)}" ${product.id === selectedId ? "selected" : ""}>${escapeHTML(product.id)} · ${escapeHTML(product.nombre)}</option>`).join("")}</select><input class="field" type="number" min="1" step="1" value="${quantity}" aria-label="Cantidad" required><button class="row-action delete" type="button" aria-label="Quitar componente">×</button>`;
     row.querySelector("button").addEventListener("click", () => row.remove());
     componentList.appendChild(row);
   };
   document.getElementById("add-component").addEventListener("click", addComponent);
-  addComponent();
+  if (editing) {
+    combo.componentes.forEach((part) => addComponent(part.producto.id, part.cantidad));
+    if (!combo.componentes.length && !combo.componentesRotos?.length) addComponent();
+  } else {
+    addComponent();
+  }
   document.getElementById("combo-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const nombre = document.getElementById("combo-name").value.trim();
     const precio = Number(document.getElementById("combo-price").value);
     const components = [...componentList.querySelectorAll(".component-row")].map((row) => ({ producto: almacen.buscarProducto(row.querySelector("select").value), cantidad: Number(row.querySelector("input").value) }));
-    if (!nombre || !Number.isFinite(precio) || precio < 0 || !components.length || components.some((part) => !part.producto || part.cantidad < 1)) return showToast("Completa el nombre, precio y componentes válidos.", true);
-    if (almacen.combos.some((combo) => combo.nombre.toLowerCase() === nombre.toLowerCase())) return showToast("Ya existe un combo con ese nombre.", true);
-    const combo = new Combo(nombre, precio, components);
-    if (!almacen.agregarCombo(combo)) return showToast("No se pudo crear el combo.", true);
-    saveData(); closeModal(); render(); showToast(`Combo ${combo.id} creado.`);
+    const componentIds = components.map((part) => part.producto?.id);
+    if (!nombre || !Number.isFinite(precio) || precio < 0 || !components.length || components.some((part) => !part.producto || !Number.isInteger(part.cantidad) || part.cantidad < 1)) return showToast("Completa el nombre, precio y componentes válidos.", true);
+    if (componentIds.length !== new Set(componentIds).size) return showToast("Cada producto solo puede aparecer una vez en el combo.", true);
+    if (almacen.combos.some((item) => item.id !== combo?.id && item.nombre.toLowerCase() === nombre.toLowerCase())) return showToast("Ya existe un combo con ese nombre.", true);
+    let comboId;
+    if (editing) {
+      if (almacen.buscarCombo(combo.id) !== combo) return showToast("El combo ya no está disponible. Actualiza la lista e inténtalo de nuevo.", true);
+      combo.modificar(nombre, precio, components);
+      combo.componentesRotos = [];
+      combo._textoOriginal = null;
+      comboId = combo.id;
+    } else {
+      const newCombo = new Combo(nombre, precio, components);
+      if (!almacen.agregarCombo(newCombo)) return showToast("No se pudo crear el combo.", true);
+      comboId = newCombo.id;
+    }
+    saveData(); closeModal(); render(); showToast(editing ? `Combo ${comboId} actualizado.` : `Combo ${comboId} creado.`);
   });
 }
 
@@ -511,6 +532,10 @@ document.addEventListener("click", (event) => {
   if (action === "edit-product") productForm(almacen.buscarProducto(id));
   if (action === "add-stock") addStockForm(almacen.buscarProducto(id));
   if (action === "add-combo") comboForm();
+  if (action === "edit-combo") {
+    const combo = almacen.buscarCombo(id);
+    if (combo) comboForm(combo);
+  }
   if (action === "add-category") categoryForm();
   if (action === "close-modal") closeModal();
   if (action === "export-data") exportBackup();
