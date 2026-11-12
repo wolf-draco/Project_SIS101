@@ -2,6 +2,15 @@ const NOMBRE_HOJA_PRODUCTOS = 'Productos';
 const NOMBRE_HOJA_COMBOS = 'Combos';
 const NOMBRE_HOJA_CATEGORIAS = 'Categorias';
 const NOMBRE_HOJA_VENTAS = 'Ventas';
+const NOMBRE_HOJA_USUARIOS = 'Usuarios SIS101';
+const ROL_ADMINISTRADOR = 'ADMINISTRADOR';
+const ROL_EMPLEADO = 'EMPLEADO';
+const ITERACIONES_CLAVE = 15000;
+const ITERACIONES_CLAVE_ANTERIOR = 120000;
+const PREFIJO_HASH_CLAVE = 'v2$';
+const DURACION_SESION_SEGUNDOS = 21600;
+const MAX_INTENTOS_LOGIN = 5;
+const BLOQUEO_LOGIN_SEGUNDOS = 900;
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('WebApp')
@@ -14,9 +23,6 @@ function onOpen() {
   ui.createMenu('Almacén')
     .addItem('📊 Ir al Dashboard', 'irAlDashboard')
     .addSeparator()
-    .addSubMenu(ui.createMenu('Ventas')
-      .addItem('Vender Vaso', 'abrirDialogoVenderVaso')
-      .addItem('Vender Combo', 'abrirDialogoVenderCombo'))
     .addSubMenu(ui.createMenu('Productos')
       .addItem('Agregar Producto', 'abrirDialogoAgregarProducto')
       .addItem('Modificar Producto', 'abrirDialogoModificarProducto')
@@ -32,6 +38,9 @@ function onOpen() {
       .addItem('Ver Categorías', 'menuVerCategorias')
       .addSeparator()
       .addItem('🛡️ Bloquear Edición Manual', 'configurarProteccionCategorias'))
+    .addSubMenu(ui.createMenu('Cuentas de la aplicación')
+      .addItem('Configurar administrador inicial', 'configurarAdministradorInicial')
+      .addItem('Restablecer clave de administrador', 'restablecerClaveAdministrador'))
     .addSeparator()
     .addItem('🔍 Verificar Integridad', 'menuVerificarIntegridad')
     .addSeparator()
@@ -40,7 +49,379 @@ function onOpen() {
     .addToUi();
 }
 
-function cargarAlmacenDesdeSheet() {
+function configurarAdministradorInicial() {
+  const ui = SpreadsheetApp.getUi();
+  const correoActivo = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase();
+  const correoEfectivo = String(Session.getEffectiveUser().getEmail() || '').trim().toLowerCase();
+  if (!correoActivo || correoActivo !== correoEfectivo) {
+    throw new Error('Configura el administrador desde la hoja de cálculo con la cuenta propietaria.');
+  }
+
+  const sheet = obtenerHojaUsuarios_(true);
+  if (sheet.getLastRow() > 1) {
+    ui.alert('Ya existen cuentas. Inicia sesión como administrador o usa la opción para restablecer su clave.');
+    return;
+  }
+
+  const usernameResponse = ui.prompt('Administrador inicial', 'Nombre de usuario (3 a 32 caracteres):', ui.ButtonSet.OK_CANCEL);
+  if (usernameResponse.getSelectedButton() !== ui.Button.OK) return;
+  const username = normalizarUsuario_(usernameResponse.getResponseText());
+  if (!esUsuarioValido_(username)) {
+    ui.alert('El usuario debe tener 3 a 32 caracteres y usar solo letras, números, punto, guion o guion bajo.');
+    return;
+  }
+
+  const passwordResponse = ui.prompt('Administrador inicial', 'Contraseña (mínimo 8 caracteres):', ui.ButtonSet.OK_CANCEL);
+  if (passwordResponse.getSelectedButton() !== ui.Button.OK) return;
+  const password = passwordResponse.getResponseText();
+  const confirmResponse = ui.prompt('Administrador inicial', 'Confirma la contraseña:', ui.ButtonSet.OK_CANCEL);
+  if (confirmResponse.getSelectedButton() !== ui.Button.OK) return;
+  if (password !== confirmResponse.getResponseText() || !esClaveValida_(password)) {
+    ui.alert('Las contraseñas no coinciden o no cumplen el mínimo de 8 caracteres.');
+    return;
+  }
+
+  const properties = PropertiesService.getScriptProperties();
+  if (!properties.getProperty('SIS101_AUTH_PEPPER')) {
+    properties.setProperty('SIS101_AUTH_PEPPER', Utilities.getUuid() + Utilities.getUuid());
+  }
+  const credentials = crearCredencial_(password);
+  conLock_(() => {
+    if (obtenerHojaUsuarios_(false).getLastRow() > 1) throw new Error('Ya se crearon cuentas mientras se configuraba el administrador.');
+    guardarUsuario_(sheet, username, ROL_ADMINISTRADOR, credentials, true);
+    properties.setProperty('SIS101_ADMIN_SHEET_EMAIL', correoActivo);
+    sheet.hideSheet();
+  });
+  ui.alert('Administrador configurado. Abre la aplicación web e inicia sesión con estas credenciales.');
+}
+
+function restablecerClaveAdministrador() {
+  requireAdministradorDeHoja_();
+  const ui = SpreadsheetApp.getUi();
+  const passwordResponse = ui.prompt('Restablecer administrador', 'Nueva contraseña (mínimo 8 caracteres):', ui.ButtonSet.OK_CANCEL);
+  if (passwordResponse.getSelectedButton() !== ui.Button.OK) return;
+  const password = passwordResponse.getResponseText();
+  if (!esClaveValida_(password)) {
+    ui.alert('La contraseña debe tener entre 8 y 128 caracteres.');
+    return;
+  }
+
+  const confirmResponse = ui.prompt('Restablecer administrador', 'Confirma la nueva contraseña:', ui.ButtonSet.OK_CANCEL);
+  if (confirmResponse.getSelectedButton() !== ui.Button.OK) return;
+  if (password !== confirmResponse.getResponseText()) {
+    ui.alert('Las contraseñas no coinciden.');
+    return;
+  }
+
+  const sheet = obtenerHojaUsuarios_(false);
+  const admin = obtenerUsuarioPorRol_(sheet, ROL_ADMINISTRADOR);
+  if (!admin) throw new Error('No existe una cuenta de administrador para restablecer.');
+  actualizarClaveUsuario_(sheet, admin.row, crearCredencial_(password));
+  ui.alert('La contraseña del administrador se restableció.');
+}
+
+function obtenerHojaUsuarios_(crear) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(NOMBRE_HOJA_USUARIOS);
+  if (!sheet && crear) {
+    sheet = ss.insertSheet(NOMBRE_HOJA_USUARIOS);
+    sheet.appendRow(['Usuario', 'Rol', 'Sal', 'Hash de clave', 'Activo', 'Creado']);
+  }
+  if (!sheet) throw new Error('No se encontró la hoja de usuarios.');
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['Usuario', 'Rol', 'Sal', 'Hash de clave', 'Activo', 'Creado']);
+  } else {
+    const encabezados = sheet.getRange(1, 1, 1, 6).getDisplayValues()[0];
+    if (encabezados.join('|') !== 'Usuario|Rol|Sal|Hash de clave|Activo|Creado') {
+      throw new Error(`La hoja "${NOMBRE_HOJA_USUARIOS}" tiene encabezados inesperados.`);
+    }
+  }
+  return sheet;
+}
+
+function normalizarUsuario_(username) {
+  return String(username || '').trim().toLowerCase();
+}
+
+function esUsuarioValido_(username) {
+  return /^[a-z0-9._-]{3,32}$/.test(username);
+}
+
+function esClaveValida_(password) {
+  return typeof password === 'string' && password.length >= 8 && password.length <= 128;
+}
+
+function obtenerUsuarios_(sheet) {
+  if (sheet.getLastRow() <= 1) return [];
+  return sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).getValues()
+    .map((row, index) => ({
+      usuario: normalizarUsuario_(row[0]),
+      rol: String(row[1] || ''),
+      sal: String(row[2] || ''),
+      hash: String(row[3] || ''),
+      activo: row[4] === true || String(row[4]).toLowerCase() === 'true',
+      creado: String(row[5] || ''),
+      row: index + 2
+    }));
+}
+
+function obtenerUsuarioPorRol_(sheet, role) {
+  return obtenerUsuarios_(sheet).find(user => user.rol === role) || null;
+}
+
+function obtenerUsuario_(sheet, username) {
+  const normalizado = normalizarUsuario_(username);
+  return obtenerUsuarios_(sheet).find(user => user.usuario === normalizado) || null;
+}
+
+function crearCredencial_(password) {
+  const salt = Utilities.getUuid() + Utilities.getUuid();
+  const hash = derivarHashClave_(password, salt, ITERACIONES_CLAVE);
+  return { salt, hash: `${PREFIJO_HASH_CLAVE}${ITERACIONES_CLAVE}$${hash}` };
+}
+
+function guardarUsuario_(sheet, username, role, credentials, active) {
+  sheet.appendRow([username, role, credentials.salt, credentials.hash, Boolean(active), new Date().toISOString()]);
+  return username;
+}
+
+function actualizarClaveUsuario_(sheet, row, credentials) {
+  sheet.getRange(row, 3, 1, 2).setValues([[credentials.salt, credentials.hash]]);
+}
+
+function leerHashClave_(storedHash) {
+  const hashVersionado = String(storedHash || '').match(/^v2\$(\d+)\$([a-f0-9]{64})$/);
+  if (hashVersionado) {
+    const iterations = Number(hashVersionado[1]);
+    if (Number.isSafeInteger(iterations) && iterations > 0 && iterations <= ITERACIONES_CLAVE_ANTERIOR) {
+      return { iterations, hash: hashVersionado[2], versionado: true };
+    }
+  }
+  if (/^[a-f0-9]{64}$/.test(String(storedHash || ''))) {
+    return { iterations: ITERACIONES_CLAVE_ANTERIOR, hash: String(storedHash), versionado: false };
+  }
+  return { iterations: ITERACIONES_CLAVE, hash: '', versionado: false };
+}
+
+function derivarHashClave_(password, salt, iterations) {
+  const pepper = PropertiesService.getScriptProperties().getProperty('SIS101_AUTH_PEPPER');
+  if (!pepper) throw new Error('Falta la configuración de autenticación. Inicializa el acceso desde Sheets.');
+  const key = Utilities.newBlob(String(password) + pepper).getBytes();
+  const saltBytes = Utilities.newBlob(String(salt)).getBytes().concat([0, 0, 0, 1]);
+  let u = Utilities.computeHmacSha256Signature(saltBytes, key);
+  const result = u.slice();
+  for (let iteration = 1; iteration < iterations; iteration += 1) {
+    u = Utilities.computeHmacSha256Signature(u, key);
+    for (let index = 0; index < result.length; index += 1) result[index] ^= u[index];
+  }
+  return result.map(byte => ((byte + 256) % 256).toString(16).padStart(2, '0')).join('');
+}
+
+function migrarHashUsuario_(sheet, user, password) {
+  return conLock_(() => {
+    const latestUser = obtenerUsuario_(sheet, user.usuario);
+    if (!latestUser || !latestUser.activo || latestUser.rol !== user.rol) return null;
+    if (latestUser.hash !== user.hash) {
+      const latestHash = leerHashClave_(latestUser.hash);
+      if (latestHash.versionado
+        && latestHash.iterations === ITERACIONES_CLAVE
+        && hashesIguales_(derivarHashClave_(password, latestUser.sal, latestHash.iterations), latestHash.hash)) {
+        return latestUser.hash;
+      }
+      return null;
+    }
+    const credentials = crearCredencial_(password);
+    actualizarClaveUsuario_(sheet, latestUser.row, credentials);
+    return credentials.hash;
+  });
+}
+
+function hashesIguales_(left, right) {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index += 1) difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  return difference === 0;
+}
+
+function claveDeSesion_(token) {
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(token), Utilities.Charset.UTF_8);
+  return 'sis101-session-' + Utilities.base64EncodeWebSafe(digest).replace(/=+$/g, '');
+}
+
+function requireSesion_(token, roles) {
+  const cleanToken = String(token || '');
+  if (!cleanToken) throw new Error('Inicia sesión para continuar.');
+  const cache = CacheService.getScriptCache();
+  const sessionJson = cache.get(claveDeSesion_(cleanToken));
+  if (!sessionJson) throw new Error('La sesión venció. Inicia sesión nuevamente.');
+  const session = JSON.parse(sessionJson);
+  const sheet = obtenerHojaUsuarios_(false);
+  const user = obtenerUsuario_(sheet, session.usuario);
+  if (!user || !user.activo || user.rol !== session.rol || user.hash !== session.hash) {
+    cache.remove(claveDeSesion_(cleanToken));
+    throw new Error('La cuenta está desactivada. Inicia sesión nuevamente.');
+  }
+  if (roles && !roles.includes(user.rol)) throw new Error('No tienes permiso para esta operación.');
+  return { usuario: user.usuario, rol: user.rol };
+}
+
+function requireAdministradorDeHoja_() {
+  const activeEmail = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase();
+  const adminEmail = String(PropertiesService.getScriptProperties().getProperty('SIS101_ADMIN_SHEET_EMAIL') || '').trim().toLowerCase();
+  if (!activeEmail || !adminEmail || activeEmail !== adminEmail) {
+    throw new Error('Esta operación solo está disponible para el administrador desde la hoja de cálculo.');
+  }
+}
+
+function apiIniciarSesion(username, password) {
+  const cleanUsername = normalizarUsuario_(username);
+  if (!esUsuarioValido_(cleanUsername) || typeof password !== 'string' || password.length > 128) {
+    return { ok: false, mensaje: 'Usuario o contraseña incorrectos.' };
+  }
+  if (!PropertiesService.getScriptProperties().getProperty('SIS101_AUTH_PEPPER')
+    || !SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOMBRE_HOJA_USUARIOS)) {
+    return { ok: false, mensaje: 'El acceso aún no está configurado. Pide al administrador que lo inicialice desde Sheets.' };
+  }
+  const cache = CacheService.getScriptCache();
+  const failureKey = claveDeSesion_('login:' + cleanUsername);
+  const failures = Number(cache.get(failureKey) || 0);
+  if (failures >= MAX_INTENTOS_LOGIN) {
+    return { ok: false, mensaje: 'Demasiados intentos. Espera 15 minutos antes de volver a probar.' };
+  }
+
+  const sheet = obtenerHojaUsuarios_(false);
+  const user = obtenerUsuario_(sheet, cleanUsername);
+  const salt = user ? user.sal : 'sis101-login-salt';
+  const storedHash = leerHashClave_(user ? user.hash : '');
+  const candidate = derivarHashClave_(password, salt, storedHash.iterations);
+  if (!user || !user.activo || !hashesIguales_(candidate, storedHash.hash)) {
+    cache.put(failureKey, String(failures + 1), BLOQUEO_LOGIN_SEGUNDOS);
+    return { ok: false, mensaje: 'Usuario o contraseña incorrectos.' };
+  }
+
+  let sessionHash = user.hash;
+  if (!storedHash.versionado || storedHash.iterations !== ITERACIONES_CLAVE) {
+    sessionHash = migrarHashUsuario_(sheet, user, password);
+    if (!sessionHash) return { ok: false, mensaje: 'La cuenta cambió. Inicia sesión nuevamente.' };
+  }
+
+  cache.remove(failureKey);
+  const token = Utilities.getUuid() + Utilities.getUuid();
+  cache.put(claveDeSesion_(token), JSON.stringify({ usuario: user.usuario, rol: user.rol, hash: sessionHash }), DURACION_SESION_SEGUNDOS);
+  return { ok: true, token, usuario: user.usuario, rol: user.rol };
+}
+
+function apiCerrarSesion(token) {
+  if (token) CacheService.getScriptCache().remove(claveDeSesion_(token));
+  return { ok: true };
+}
+
+function apiListarCuentas(token) {
+  requireSesion_(token, [ROL_ADMINISTRADOR]);
+  const sheet = obtenerHojaUsuarios_(false);
+  return obtenerUsuarios_(sheet).map(user => ({
+    usuario: user.usuario,
+    rol: user.rol,
+    activo: user.activo,
+    creado: user.creado
+  }));
+}
+
+function apiGuardarEnlacePago(token, url) {
+  requireSesion_(token, [ROL_ADMINISTRADOR]);
+  const paymentUrl = String(url || '').trim();
+  if (paymentUrl.length > 2048 || (paymentUrl && !/^https?:\/\/\S+$/i.test(paymentUrl))) {
+    return { ok: false, mensaje: 'La URL de destino del QR debe ser http o https y no superar 2048 caracteres.' };
+  }
+  PropertiesService.getScriptProperties().setProperty('SIS101_PAYMENT_QR_URL', paymentUrl);
+  return { ok: true, enlacePagoUrl: paymentUrl, qrPagoUrl: paymentUrl };
+}
+
+function apiGuardarQrPago(token, url) {
+  return apiGuardarEnlacePago(token, url);
+}
+
+function apiCrearCuentaEmpleado(token, username, password) {
+  requireSesion_(token, [ROL_ADMINISTRADOR]);
+  const cleanUsername = normalizarUsuario_(username);
+  if (!esUsuarioValido_(cleanUsername)) return { ok: false, mensaje: 'El usuario debe tener 3 a 32 caracteres y usar letras, números, punto, guion o guion bajo.' };
+  if (!esClaveValida_(password)) return { ok: false, mensaje: 'La contraseña debe tener entre 8 y 128 caracteres.' };
+  const credentials = crearCredencial_(password);
+  return conLock_(function () {
+    const sheet = obtenerHojaUsuarios_(false);
+    const users = obtenerUsuarios_(sheet);
+    if (users.some(user => user.usuario === cleanUsername)) return { ok: false, mensaje: 'Ese usuario ya existe.' };
+    if (users.filter(user => user.rol === ROL_EMPLEADO && user.activo).length >= 3) {
+      return { ok: false, mensaje: 'Ya hay tres cuentas de empleados activas. Desactiva una antes de crear otra.' };
+    }
+    guardarUsuario_(sheet, cleanUsername, ROL_EMPLEADO, credentials, true);
+    return { ok: true, cuentas: apiListarCuentas(token) };
+  });
+}
+
+function apiCambiarEstadoCuentaEmpleado(token, username, active) {
+  requireSesion_(token, [ROL_ADMINISTRADOR]);
+  const cleanUsername = normalizarUsuario_(username);
+  return conLock_(function () {
+    const sheet = obtenerHojaUsuarios_(false);
+    const user = obtenerUsuario_(sheet, cleanUsername);
+    if (!user || user.rol !== ROL_EMPLEADO) return { ok: false, mensaje: 'No se encontró una cuenta de empleado.' };
+    if (active && obtenerUsuarios_(sheet).filter(item => item.rol === ROL_EMPLEADO && item.activo).length >= 3 && !user.activo) {
+      return { ok: false, mensaje: 'Ya hay tres cuentas de empleados activas.' };
+    }
+    sheet.getRange(user.row, 5).setValue(Boolean(active));
+    return { ok: true, cuentas: apiListarCuentas(token) };
+  });
+}
+
+function apiEliminarCuentaEmpleado(token, username) {
+  requireSesion_(token, [ROL_ADMINISTRADOR]);
+  const cleanUsername = normalizarUsuario_(username);
+  return conLock_(function () {
+    const sheet = obtenerHojaUsuarios_(false);
+    const user = obtenerUsuario_(sheet, cleanUsername);
+    if (!user || user.rol !== ROL_EMPLEADO) return { ok: false, mensaje: 'No se encontró una cuenta de empleado.' };
+    sheet.deleteRow(user.row);
+    return { ok: true, cuentas: apiListarCuentas(token) };
+  });
+}
+
+function apiRestablecerClaveEmpleado(token, username, password) {
+  requireSesion_(token, [ROL_ADMINISTRADOR]);
+  const cleanUsername = normalizarUsuario_(username);
+  if (!esClaveValida_(password)) return { ok: false, mensaje: 'La contraseña debe tener entre 8 y 128 caracteres.' };
+  const credentials = crearCredencial_(password);
+  return conLock_(function () {
+    const sheet = obtenerHojaUsuarios_(false);
+    const user = obtenerUsuario_(sheet, cleanUsername);
+    if (!user || user.rol !== ROL_EMPLEADO) return { ok: false, mensaje: 'No se encontró una cuenta de empleado.' };
+    actualizarClaveUsuario_(sheet, user.row, credentials);
+    return { ok: true, mensaje: 'Contraseña actualizada.' };
+  });
+}
+
+function apiCambiarClavePropia(token, currentPassword, newPassword) {
+  const session = requireSesion_(token);
+  if (!esClaveValida_(newPassword)) return { ok: false, mensaje: 'La nueva contraseña debe tener entre 8 y 128 caracteres.' };
+  const sheet = obtenerHojaUsuarios_(false);
+  const user = obtenerUsuario_(sheet, session.usuario);
+  const storedHash = leerHashClave_(user ? user.hash : '');
+  if (!user || !hashesIguales_(derivarHashClave_(String(currentPassword || ''), user.sal, storedHash.iterations), storedHash.hash)) {
+    return { ok: false, mensaje: 'La contraseña actual no es correcta.' };
+  }
+  const credentials = crearCredencial_(newPassword);
+  return conLock_(function () {
+    const currentUser = obtenerUsuario_(sheet, session.usuario);
+    if (!currentUser || currentUser.hash !== user.hash || !currentUser.activo) {
+      return { ok: false, mensaje: 'La cuenta cambió. Inicia sesión de nuevo y vuelve a intentar.' };
+    }
+    actualizarClaveUsuario_(sheet, currentUser.row, credentials);
+    CacheService.getScriptCache().remove(claveDeSesion_(token));
+    return { ok: true, mensaje: 'Contraseña actualizada. Inicia sesión con la nueva clave.' };
+  });
+}
+
+function cargarAlmacenDesdeSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const almacen = new Almacen();
 
@@ -64,11 +445,12 @@ function cargarAlmacenDesdeSheet() {
 
   const hojaProductos = ss.getSheetByName(NOMBRE_HOJA_PRODUCTOS);
   if (hojaProductos && hojaProductos.getLastRow() > 1) {
-    const datos = hojaProductos.getRange(2, 1, hojaProductos.getLastRow() - 1, 8).getValues();
+    const datos = hojaProductos.getRange(2, 1, hojaProductos.getLastRow() - 1, 9).getValues();
     almacen.productos = datos.map(fila => {
       const p = new Producto(fila[1], fila[2], fila[3], fila[4], fila[5], fila[6]);
       p.id = fila[0];
       p.vasosSueltos = Number(fila[7]);
+      p.imagen = String(fila[8] || '');
       return p;
     });
   }
@@ -121,7 +503,7 @@ function cargarAlmacenDesdeSheet() {
   return almacen;
 }
 
-function guardarAlmacenEnSheet(almacen) {
+function guardarAlmacenEnSheet_(almacen) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
   let hojaCategorias = ss.getSheetByName(NOMBRE_HOJA_CATEGORIAS);
@@ -138,9 +520,9 @@ function guardarAlmacenEnSheet(almacen) {
   let hojaProductos = ss.getSheetByName(NOMBRE_HOJA_PRODUCTOS);
   if (!hojaProductos) hojaProductos = ss.insertSheet(NOMBRE_HOJA_PRODUCTOS);
   hojaProductos.clear();
-  hojaProductos.appendRow(['ID', 'Nombre', 'Categoría', 'Precio', 'Stock', 'Porciones', 'Precio Vaso', 'Vasos Sueltos']);
+  hojaProductos.appendRow(['ID', 'Nombre', 'Categoría', 'Precio', 'Stock', 'Porciones', 'Precio Vaso', 'Vasos Sueltos', 'URL Imagen']);
   const filasProd = almacen.aFilasProductos();
-  if (filasProd.length > 0) hojaProductos.getRange(2, 1, filasProd.length, 8).setValues(filasProd);
+  if (filasProd.length > 0) hojaProductos.getRange(2, 1, filasProd.length, 9).setValues(filasProd);
   if (filasProd.length > 0) {
     hojaProductos.getRange(2, 4, filasProd.length, 1).setNumberFormat('#,##0.00" Bs"');
     hojaProductos.getRange(2, 7, filasProd.length, 1).setNumberFormat('#,##0.00" Bs"');
@@ -231,6 +613,7 @@ function ajustarAlineacionHoja_(hoja) {
     hoja.getRange(2, 1, filasDatos, 4).setHorizontalAlignment('center');
     hoja.getRange(2, 6, filasDatos, 1).setHorizontalAlignment('center');
     hoja.getRange(2, 7, filasDatos, 2).setHorizontalAlignment('right');
+    hoja.getRange(2, 9, filasDatos, 2).setHorizontalAlignment('left');
   } else if (nombre === 'Eliminados') {
     hoja.getRange(2, 1, filasDatos, 4).setHorizontalAlignment('center');
     hoja.getRange(2, 7, filasDatos, 2).setHorizontalAlignment('right');
@@ -241,10 +624,10 @@ function ajustarAlineacionHoja_(hoja) {
 function estilizarHojasDatos_(nombresHojas) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const configuraciones = [
-    [NOMBRE_HOJA_PRODUCTOS, 8, '#1E5EFF', [75, 200, 145, 105, 85, 100, 110, 110]],
+    [NOMBRE_HOJA_PRODUCTOS, 9, '#1E5EFF', [75, 200, 145, 105, 85, 100, 110, 110, 240]],
     [NOMBRE_HOJA_COMBOS, 4, '#60708F', [75, 210, 115, 420]],
     [NOMBRE_HOJA_CATEGORIAS, 3, '#0F3D2E', [190, 90, 110]],
-    [NOMBRE_HOJA_VENTAS, 8, '#2E9B72', [120, 100, 100, 75, 220, 90, 130, 130]],
+    [NOMBRE_HOJA_VENTAS, 10, '#2E9B72', [120, 100, 100, 75, 220, 90, 130, 130, 120, 140]],
     ['Eliminados', 9, '#4D5666', [120, 100, 110, 75, 200, 140, 110, 120, 300]],
   ];
 
@@ -252,6 +635,9 @@ function estilizarHojasDatos_(nombresHojas) {
     if (nombresHojas && !nombresHojas.includes(nombre)) return;
     const hoja = ss.getSheetByName(nombre);
     if (!hoja) return;
+    if (nombre === NOMBRE_HOJA_VENTAS && hoja.getLastRow() > 0 && !hoja.getRange(1, 10).getValue()) {
+      hoja.getRange(1, 10).setValue('Método de pago');
+    }
     estilizarTabla_(hoja, columnas, color, anchos);
     ajustarAlineacionHoja_(hoja);
     const filas = hoja.getLastRow() - 1;
@@ -283,12 +669,13 @@ function obtenerRevisionWeb_() {
   return Utilities.base64EncodeWebSafe(digest);
 }
 
-function apiObtenerDatosWeb() {
-  const almacen = cargarAlmacenDesdeSheet();
+function apiObtenerDatosWeb(token) {
+  const session = requireSesion_(token, [ROL_ADMINISTRADOR, ROL_EMPLEADO]);
+  const almacen = cargarAlmacenDesdeSheet_();
   const hojaVentas = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOMBRE_HOJA_VENTAS);
   const zona = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
   const ventas = hojaVentas && hojaVentas.getLastRow() > 1
-    ? hojaVentas.getRange(2, 1, hojaVentas.getLastRow() - 1, 8).getValues().map(fila => {
+    ? hojaVentas.getRange(2, 1, hojaVentas.getLastRow() - 1, 10).getValues().map(fila => {
       const fecha = fila[0] instanceof Date ? Utilities.formatDate(fila[0], zona, 'yyyy-MM-dd') : String(fila[0] || '');
       const hora = fila[1] instanceof Date ? Utilities.formatDate(fila[1], zona, 'HH:mm:ss') : String(fila[1] || '');
       return {
@@ -296,7 +683,9 @@ function apiObtenerDatosWeb() {
         tipo: String(fila[2] || ''),
         detalle: String(fila[4] || ''),
         cantidad: Number(fila[5]) || 0,
-        total: Number(fila[7]) || 0
+        total: Number(fila[7]) || 0,
+        usuario: String(fila[8] || ''),
+        metodoPago: String(fila[9] || '')
       };
     }).reverse()
     : [];
@@ -312,7 +701,8 @@ function apiObtenerDatosWeb() {
       stock: Number(p.stock) || 0,
       porciones: Number(p.porciones) || 0,
       precioVaso: Number(p.precioVaso) || 0,
-      vasosSueltos: Number(p.vasosSueltos) || 0
+      vasosSueltos: Number(p.vasosSueltos) || 0,
+      imagen: String(p.imagen || '')
     })),
     combos: almacen.combos.map(c => ({
       id: c.id,
@@ -323,15 +713,20 @@ function apiObtenerDatosWeb() {
       textoOriginal: c._textoOriginal || null
     })),
     ultimoCombo: Number(almacen.ultimoCombo) || 0,
-    ventas
+    enlacePagoUrl: String(PropertiesService.getScriptProperties().getProperty('SIS101_PAYMENT_QR_URL') || ''),
+    qrPagoUrl: String(PropertiesService.getScriptProperties().getProperty('SIS101_PAYMENT_QR_URL') || ''),
+    ventas: session.rol === ROL_ADMINISTRADOR
+      ? ventas
+      : ventas.filter(venta => venta.usuario === session.usuario)
   };
 }
 
-function apiGuardarInventarioWeb(datos, versionEsperada) {
-  return conLock(() => {
+function apiGuardarInventarioWeb(token, datos, versionEsperada) {
+  requireSesion_(token, [ROL_ADMINISTRADOR]);
+  return conLock_(() => {
     const versionActual = obtenerRevisionWeb_();
     if (String(versionEsperada) !== versionActual) {
-      return { ok: false, conflicto: true, mensaje: 'El inventario cambió en otra sesión. Se cargaron los datos más recientes.', datos: apiObtenerDatosWeb() };
+      return { ok: false, conflicto: true, mensaje: 'El inventario cambió en otra sesión. Se cargaron los datos más recientes.', datos: apiObtenerDatosWeb(token) };
     }
 
     try {
@@ -352,6 +747,7 @@ function apiGuardarInventarioWeb(datos, versionEsperada) {
         const producto = new Producto(String(d.nombre || '').trim(), String(d.categoria || ''), Number(d.precio), Number(d.stock), Number(d.porciones), Number(d.precioVaso));
         producto.id = String(d.id || '');
         producto.vasosSueltos = Number(d.vasosSueltos) || 0;
+        producto.imagen = String(d.imagen || '').trim();
         return producto;
       });
       const idsProductos = almacen.productos.map(p => p.id);
@@ -363,6 +759,9 @@ function apiGuardarInventarioWeb(datos, versionEsperada) {
         || idsProductos.some((id, i) => idsProductos.indexOf(id) !== i)
         || nombresProductos.some((nombre, i) => nombresProductos.indexOf(nombre) !== i)) {
         return { ok: false, mensaje: 'Hay productos inválidos, repetidos o con categorías inexistentes.' };
+      }
+      if (almacen.productos.some(p => p.imagen && !/^https?:\/\/\S+$/i.test(p.imagen))) {
+        return { ok: false, mensaje: 'Cada imagen debe tener una URL válida que comience con http:// o https://.' };
       }
 
       almacen.combos = datos.combos.map(d => {
@@ -392,31 +791,76 @@ function apiGuardarInventarioWeb(datos, versionEsperada) {
       }
       almacen.ultimoCombo = Number(datos.ultimoCombo) || 0;
 
-      const almacenAnterior = cargarAlmacenDesdeSheet();
-      guardarAlmacenEnSheet(almacen);
+      const almacenAnterior = cargarAlmacenDesdeSheet_();
+      guardarAlmacenEnSheet_(almacen);
       const idsProductosNuevos = almacen.productos.map(p => p.id);
       const idsCombosNuevos = almacen.combos.map(c => c.id);
       const nombresCategoriasNuevas = almacen.categorias.map(c => c.nombre);
       almacenAnterior.productos.filter(p => !idsProductosNuevos.includes(p.id)).forEach(p => {
-        registrarEliminacion('Producto', p.id, p.nombre, p.categoria, p.stock, p.precio, 'Desde la aplicación web');
+        registrarEliminacion_('Producto', p.id, p.nombre, p.categoria, p.stock, p.precio, 'Desde la aplicación web');
       });
       almacenAnterior.combos.filter(c => !idsCombosNuevos.includes(c.id)).forEach(c => {
-        registrarEliminacion('Combo', c.id, c.nombre, '-', 0, c.precio, 'Desde la aplicación web');
+        registrarEliminacion_('Combo', c.id, c.nombre, '-', 0, c.precio, 'Desde la aplicación web');
       });
       almacenAnterior.categorias.filter(c => !nombresCategoriasNuevas.includes(c.nombre)).forEach(c => {
-        registrarEliminacion('Categoría', '-', c.nombre, '-', 0, 0, 'Desde la aplicación web');
+        registrarEliminacion_('Categoría', '-', c.nombre, '-', 0, 0, 'Desde la aplicación web');
       });
-      return { ok: true, datos: apiObtenerDatosWeb() };
+      return { ok: true, datos: apiObtenerDatosWeb(token) };
     } catch (e) {
       return { ok: false, mensaje: 'No se pudo guardar el inventario: ' + e.message };
     }
   });
 }
 
-function apiVenderVasoWeb(idProducto, idVaso, cantidad) {
-  return conLock(() => {
+function validarMetodoPagoVenta_(metodoPago, pagoConfirmado, enlaceMostrado) {
+  if (metodoPago !== 'Efectivo' && metodoPago !== 'Enlace' && metodoPago !== 'QR') {
+    throw new Error('Selecciona un método de pago válido.');
+  }
+  const hojaVentas = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOMBRE_HOJA_VENTAS);
+  if (hojaVentas && hojaVentas.getLastRow() > 0) {
+    const encabezadoPago = String(hojaVentas.getRange(1, 10).getValue() || '');
+    if (encabezadoPago && encabezadoPago !== 'Método de pago') {
+      throw new Error('La columna J de la hoja Ventas ya está ocupada por otro dato.');
+    }
+  }
+  if (metodoPago === 'Enlace' || metodoPago === 'QR') {
+    const paymentUrl = String(PropertiesService.getScriptProperties().getProperty('SIS101_PAYMENT_QR_URL') || '').trim();
+    if (!paymentUrl) throw new Error('El administrador todavía no configuró el enlace de pago.');
+    if (enlaceMostrado !== paymentUrl) throw new Error('El enlace de pago cambió. Actualiza la página antes de registrar la venta.');
+    if (pagoConfirmado !== true) throw new Error('Confirma que verificaste la recepción del pago.');
+  }
+  return metodoPago;
+}
+
+function apiVenderProductoWeb(token, idProducto, cantidad, metodoPago, pagoConfirmado, enlaceMostrado) {
+  const session = requireSesion_(token, [ROL_EMPLEADO]);
+  return conLock_(() => {
     try {
-      const almacen = cargarAlmacenDesdeSheet();
+      const metodoPagoVenta = validarMetodoPagoVenta_(metodoPago, pagoConfirmado, enlaceMostrado);
+      const almacen = cargarAlmacenDesdeSheet_();
+      const producto = almacen.buscarProducto(String(idProducto || ''));
+      const cantidadVenta = Number(cantidad);
+      if (!producto) return { ok: false, mensaje: 'No existe el producto seleccionado.' };
+      if (!Number.isInteger(cantidadVenta) || cantidadVenta <= 0 || !producto.reducirStock(cantidadVenta)) {
+        return { ok: false, mensaje: 'No se pudo vender el producto. Revisa la cantidad y el stock disponible.' };
+      }
+      const precio = Number(producto.precio);
+      const nombre = producto.nombre;
+      guardarAlmacenEnSheet_(almacen);
+      registrarVenta_('Producto', producto.id, nombre, cantidadVenta, precio, session.usuario, metodoPagoVenta);
+      return { ok: true, mensaje: `Venta registrada: ${cantidadVenta} ${nombre}.`, datos: apiObtenerDatosWeb(token) };
+    } catch (e) {
+      return { ok: false, mensaje: 'Error: ' + e.message };
+    }
+  });
+}
+
+function apiVenderVasoWeb(token, idProducto, idVaso, cantidad, metodoPago, pagoConfirmado, enlaceMostrado) {
+  const session = requireSesion_(token, [ROL_EMPLEADO]);
+  return conLock_(() => {
+    try {
+      const metodoPagoVenta = validarMetodoPagoVenta_(metodoPago, pagoConfirmado, enlaceMostrado);
+      const almacen = cargarAlmacenDesdeSheet_();
       const producto = almacen.buscarProducto(idProducto);
       if (!producto) return { ok: false, mensaje: `No existe el producto ${idProducto}.` };
       const precio = Number(producto.precioVaso);
@@ -425,19 +869,21 @@ function apiVenderVasoWeb(idProducto, idVaso, cantidad) {
       if (!Number.isInteger(cantidadVenta) || !almacen.venderVaso(idProducto, cantidadVenta, idVaso)) {
         return { ok: false, mensaje: 'No se pudo realizar la venta. Revisa el stock disponible.' };
       }
-      guardarAlmacenEnSheet(almacen);
-      registrarVenta('Vaso', idProducto, nombre, cantidadVenta, precio);
-      return { ok: true, mensaje: `Venta registrada: ${cantidadVenta} vaso(s) de ${nombre}.`, datos: apiObtenerDatosWeb() };
+      guardarAlmacenEnSheet_(almacen);
+      registrarVenta_('Vaso', idProducto, nombre, cantidadVenta, precio, session.usuario, metodoPagoVenta);
+      return { ok: true, mensaje: `Venta registrada: ${cantidadVenta} vaso(s) de ${nombre}.`, datos: apiObtenerDatosWeb(token) };
     } catch (e) {
       return { ok: false, mensaje: 'Error: ' + e.message };
     }
   });
 }
 
-function apiVenderComboWeb(idCombo, cantidad) {
-  return conLock(() => {
+function apiVenderComboWeb(token, idCombo, cantidad, metodoPago, pagoConfirmado, enlaceMostrado) {
+  const session = requireSesion_(token, [ROL_EMPLEADO]);
+  return conLock_(() => {
     try {
-      const almacen = cargarAlmacenDesdeSheet();
+      const metodoPagoVenta = validarMetodoPagoVenta_(metodoPago, pagoConfirmado, enlaceMostrado);
+      const almacen = cargarAlmacenDesdeSheet_();
       const combo = almacen.buscarCombo(idCombo);
       if (!combo) return { ok: false, mensaje: `No existe el combo ${idCombo}.` };
       const precio = Number(combo.precio);
@@ -446,9 +892,9 @@ function apiVenderComboWeb(idCombo, cantidad) {
       if (!Number.isInteger(cantidadVenta) || !almacen.venderCombo(idCombo, cantidadVenta)) {
         return { ok: false, mensaje: 'No se pudo vender el combo. Revisa el stock de sus componentes.' };
       }
-      guardarAlmacenEnSheet(almacen);
-      registrarVenta('Combo', idCombo, nombre, cantidadVenta, precio);
-      return { ok: true, mensaje: `Venta registrada: ${cantidadVenta} combo(s) ${nombre}.`, datos: apiObtenerDatosWeb() };
+      guardarAlmacenEnSheet_(almacen);
+      registrarVenta_('Combo', idCombo, nombre, cantidadVenta, precio, session.usuario, metodoPagoVenta);
+      return { ok: true, mensaje: `Venta registrada: ${cantidadVenta} combo(s) ${nombre}.`, datos: apiObtenerDatosWeb(token) };
     } catch (e) {
       return { ok: false, mensaje: 'Error: ' + e.message };
     }
@@ -456,7 +902,7 @@ function apiVenderComboWeb(idCombo, cantidad) {
 }
 
 class Producto {
-  constructor(nombre, categoria, precio, stock, porciones, precioVaso) {
+  constructor(nombre, categoria, precio, stock, porciones, precioVaso, imagen = '') {
     this.id = "";
     this.nombre = nombre;
     this.categoria = categoria;
@@ -465,6 +911,7 @@ class Producto {
     this.porciones = porciones;
     this.precioVaso = precioVaso;
     this.vasosSueltos = 0;
+    this.imagen = imagen;
   }
 
   ver() {
@@ -520,7 +967,7 @@ class Producto {
   }
 
   aFila() {
-    return [this.id, this.nombre, this.categoria, this.precio, this.stock, this.porciones, this.precioVaso, this.vasosSueltos];
+    return [this.id, this.nombre, this.categoria, this.precio, this.stock, this.porciones, this.precioVaso, this.vasosSueltos, this.imagen];
   }
 }
 
@@ -690,29 +1137,33 @@ class Almacen {
 }
 
 function menuVerProductos() {
-  const almacen = cargarAlmacenDesdeSheet();
+  requireAdministradorDeHoja_();
+  const almacen = cargarAlmacenDesdeSheet_();
   almacen.verProductos();
   SpreadsheetApp.getUi().alert('Revisa los registros (Ver > Registros) para ver los productos.');
 }
 
 function menuVerCombos() {
-  const almacen = cargarAlmacenDesdeSheet();
+  requireAdministradorDeHoja_();
+  const almacen = cargarAlmacenDesdeSheet_();
   almacen.verCombos();
   SpreadsheetApp.getUi().alert('Revisa los registros (Ver > Registros) para ver los combos.');
 }
 
 function menuVerCategorias() {
-  const almacen = cargarAlmacenDesdeSheet();
+  requireAdministradorDeHoja_();
+  const almacen = cargarAlmacenDesdeSheet_();
   almacen.verCategorias();
   SpreadsheetApp.getUi().alert('Revisa los registros (Ver > Registros) para ver las categorías.');
 }
 
 function menuReiniciarDatos() {
+  requireAdministradorDeHoja_();
   const ui = SpreadsheetApp.getUi();
   const respuesta = ui.alert('¿Estás seguro?', 'Esto borrará todos los datos actuales y creará un conjunto de prueba.', ui.ButtonSet.YES_NO);
   if (respuesta !== ui.Button.YES) return;
 
-  return conLock(() => {
+  return conLock_(() => {
     const almacen = new Almacen();
     almacen.agregarCategoria("Postres", "P");
 
@@ -751,33 +1202,49 @@ function menuReiniciarDatos() {
     almacen.agregarCombo(comboFernet);
     almacen.agregarCombo(comboCerveza);
 
-    guardarAlmacenEnSheet(almacen);
+    guardarAlmacenEnSheet_(almacen);
     ui.alert('Datos de prueba reiniciados. Revisa las hojas "Productos", "Combos" y "Categorias".');
   });
 }
 
-function registrarVenta(tipo, id, nombre, cantidad, precioUnitario) {
+function registrarVenta_(tipo, id, nombre, cantidad, precioUnitario, usuario, metodoPago) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let hojaVentas = ss.getSheetByName(NOMBRE_HOJA_VENTAS);
   if (!hojaVentas) hojaVentas = ss.insertSheet(NOMBRE_HOJA_VENTAS);
   if (hojaVentas.getLastRow() === 0) {
-    hojaVentas.appendRow(['Fecha', 'Hora', 'Tipo', 'ID', 'Nombre', 'Cantidad', 'Precio Unitario', 'Total']);
+    hojaVentas.appendRow(['Fecha', 'Hora', 'Tipo', 'ID', 'Nombre', 'Cantidad', 'Precio Unitario', 'Total', 'Usuario', 'Método de pago']);
+  } else if (!hojaVentas.getRange(1, 9).getValue()) {
+    hojaVentas.getRange(1, 9).setValue('Usuario');
   }
+  const encabezadoPago = String(hojaVentas.getRange(1, 10).getValue() || '');
+  if (encabezadoPago && encabezadoPago !== 'Método de pago') {
+    throw new Error('La columna J de la hoja Ventas ya está ocupada por otro dato.');
+  }
+  if (!encabezadoPago) hojaVentas.getRange(1, 10).setValue('Método de pago');
   const ahora = new Date();
   const zona = ss.getSpreadsheetTimeZone();
   const fecha = Utilities.formatDate(ahora, zona, 'yyyy-MM-dd');
   const hora = Utilities.formatDate(ahora, zona, 'HH:mm:ss');
   const fila = hojaVentas.getLastRow() + 1;
   hojaVentas.getRange(fila, 1, 1, 2).setNumberFormat('@');
-  hojaVentas.getRange(fila, 1, 1, 8).setValues([[fecha, hora, tipo, id, nombre, cantidad, precioUnitario, cantidad * precioUnitario]]);
+  hojaVentas.getRange(fila, 1, 1, 10).setValues([[fecha, hora, tipo, id, nombre, cantidad, precioUnitario, cantidad * precioUnitario, usuario || 'Sheets', metodoPago]]);
   if (fila === 2) {
-    estilizarTabla_(hojaVentas, 8, '#2E9B72', [120, 100, 100, 75, 220, 90, 130, 130]);
+    estilizarTabla_(hojaVentas, 10, '#2E9B72', [120, 100, 100, 75, 220, 90, 130, 130, 120, 140]);
   } else {
-    estilizarFilaNueva_(hojaVentas, fila, 8, '#2E9B72');
+    estilizarFilaNueva_(hojaVentas, fila, 10, '#2E9B72');
+  }
+  const filtro = hojaVentas.getFilter();
+  if (filtro) {
+    const rangoFiltro = filtro.getRange();
+    if (rangoFiltro.getNumColumns() < 10 || rangoFiltro.getNumRows() < fila) {
+      filtro.remove();
+      hojaVentas.getRange(1, 1, fila, 10).createFilter();
+    }
   }
   hojaVentas.getRange(fila, 1, 1, 4).setHorizontalAlignment('center');
   hojaVentas.getRange(fila, 6, 1, 1).setHorizontalAlignment('center');
   hojaVentas.getRange(fila, 7, 1, 2).setHorizontalAlignment('right').setNumberFormat('#,##0.00" Bs"');
+  hojaVentas.getRange(fila, 9, 1, 2).setHorizontalAlignment('left');
   return true;
 }
 
@@ -786,6 +1253,7 @@ function include(nombreArchivo) {
 }
 
 function abrirDialogoVenderVaso() {
+  requireAdministradorDeHoja_();
   const html = HtmlService.createTemplateFromFile('DialogoVenderVaso')
     .evaluate()
     .setWidth(440)
@@ -794,6 +1262,7 @@ function abrirDialogoVenderVaso() {
 }
 
 function abrirDialogoVenderCombo() {
+  requireAdministradorDeHoja_();
   const html = HtmlService.createTemplateFromFile('DialogoVenderCombo')
     .evaluate()
     .setWidth(440)
@@ -802,7 +1271,8 @@ function abrirDialogoVenderCombo() {
 }
 
 function getDatosParaVenderVaso() {
-  const almacen = cargarAlmacenDesdeSheet();
+  requireAdministradorDeHoja_();
+  const almacen = cargarAlmacenDesdeSheet_();
   const licores = almacen.productos
     .filter(p => p.porciones > 0 && p.vasosDisponibles() > 0)
     .map(p => ({ id: p.id, nombre: p.nombre, precioVaso: p.precioVaso, vasosDisponibles: p.vasosDisponibles() }));
@@ -813,7 +1283,8 @@ function getDatosParaVenderVaso() {
 }
 
 function getDatosParaVenderCombo() {
-  const almacen = cargarAlmacenDesdeSheet();
+  requireAdministradorDeHoja_();
+  const almacen = cargarAlmacenDesdeSheet_();
   const combos = almacen.combos
     .filter(c => c.disponibles() > 0)
     .map(c => ({ id: c.id, nombre: c.nombre, precio: c.precio, disponibles: c.disponibles() }));
@@ -821,46 +1292,17 @@ function getDatosParaVenderCombo() {
 }
 
 function ejecutarVentaVasoDesdeDialogo(idLicor, idVaso, cantidad) {
-  return conLock(() => {
-    try {
-      const almacen = cargarAlmacenDesdeSheet();
-      const licor = almacen.buscarProducto(idLicor);
-      if (!licor) return { ok: false, mensaje: `No existe el producto ${idLicor}.` };
-      const precioUnitario = licor.precioVaso;
-      const nombre = licor.nombre;
-      if (!almacen.venderVaso(idLicor, cantidad, idVaso)) {
-        return { ok: false, mensaje: 'No se pudo realizar la venta. Revisa el stock disponible.' };
-      }
-      guardarAlmacenEnSheet(almacen);
-      registrarVenta('Vaso', idLicor, nombre, cantidad, precioUnitario);
-      return { ok: true, mensaje: `Venta registrada: ${cantidad} vaso(s) de ${nombre} por ${cantidad * precioUnitario} Bs.` };
-    } catch (e) {
-      return { ok: false, mensaje: 'Error: ' + e.message };
-    }
-  });
+  requireAdministradorDeHoja_();
+  return { ok: false, mensaje: 'Las ventas solo pueden registrarse desde la aplicación con una cuenta de empleado.' };
 }
 
 function ejecutarVentaComboDesdeDialogo(idCombo, cantidad) {
-  return conLock(() => {
-    try {
-      const almacen = cargarAlmacenDesdeSheet();
-      const combo = almacen.buscarCombo(idCombo);
-      if (!combo) return { ok: false, mensaje: `No existe el combo ${idCombo}.` };
-      const precioUnitario = combo.precio;
-      const nombre = combo.nombre;
-      if (!almacen.venderCombo(idCombo, cantidad)) {
-        return { ok: false, mensaje: 'No se pudo vender el combo. Revisa el stock de sus componentes.' };
-      }
-      guardarAlmacenEnSheet(almacen);
-      registrarVenta('Combo', idCombo, nombre, cantidad, precioUnitario);
-      return { ok: true, mensaje: `Venta registrada: ${cantidad} combo(s) ${nombre} por ${cantidad * precioUnitario} Bs.` };
-    } catch (e) {
-      return { ok: false, mensaje: 'Error: ' + e.message };
-    }
-  });
+  requireAdministradorDeHoja_();
+  return { ok: false, mensaje: 'Las ventas solo pueden registrarse desde la aplicación con una cuenta de empleado.' };
 }
 
 function abrirDialogoAgregarProducto() {
+  requireAdministradorDeHoja_();
   const html = HtmlService.createTemplateFromFile('DialogoAgregarProducto')
     .evaluate()
     .setWidth(480)
@@ -869,7 +1311,8 @@ function abrirDialogoAgregarProducto() {
 }
 
 function getDatosParaAgregarProducto() {
-  const almacen = cargarAlmacenDesdeSheet();
+  requireAdministradorDeHoja_();
+  const almacen = cargarAlmacenDesdeSheet_();
   const categorias = almacen.categorias.map(c => ({
     nombre: c.nombre,
     letra: c.letra,
@@ -879,12 +1322,13 @@ function getDatosParaAgregarProducto() {
 }
 
 function ejecutarAgregarProductoDesdeDialogo(nombre, categoria, precio, stock, porciones, precioVaso) {
-  return conLock(() => {
+  requireAdministradorDeHoja_();
+  return conLock_(() => {
     try {
       if (!nombre || nombre.trim() === '') return { ok: false, mensaje: 'El nombre no puede estar vacío.' };
       if (porciones < 0 || precioVaso < 0 || precio < 0 || stock < 0) return { ok: false, mensaje: 'Los valores numéricos no pueden ser negativos.' };
       if ((porciones > 0) !== (precioVaso > 0)) return { ok: false, mensaje: 'Porciones y precio por vaso deben ser ambos > 0 o ambos = 0.' };
-      const almacen = cargarAlmacenDesdeSheet();
+      const almacen = cargarAlmacenDesdeSheet_();
       if (almacen.productos.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
         return { ok: false, mensaje: `Ya existe un producto con el nombre "${nombre}".` };
       }
@@ -892,7 +1336,7 @@ function ejecutarAgregarProductoDesdeDialogo(nombre, categoria, precio, stock, p
       if (!almacen.agregarProducto(nuevoProd)) {
         return { ok: false, mensaje: 'No se pudo agregar. Revisa la categoría o si el producto ya existe.' };
       }
-      guardarAlmacenEnSheet(almacen);
+      guardarAlmacenEnSheet_(almacen);
       return { ok: true, mensaje: `Producto "${nombre}" agregado con ID ${nuevoProd.id}.` };
     } catch (e) {
       return { ok: false, mensaje: 'Error: ' + e.message };
@@ -900,13 +1344,13 @@ function ejecutarAgregarProductoDesdeDialogo(nombre, categoria, precio, stock, p
   });
 }
 
-function conLock(fn) {
+function conLock_(fn) {
   const lock = LockService.getScriptLock();
   try { lock.waitLock(20000); return fn(); }
   finally { lock.releaseLock(); }
 }
 
-function registrarEliminacion(tipo, id, nombre, categoria, stockAlBorrar, precio, detalle) {
+function registrarEliminacion_(tipo, id, nombre, categoria, stockAlBorrar, precio, detalle) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let hoja = ss.getSheetByName('Eliminados');
   if (!hoja) hoja = ss.insertSheet('Eliminados');
@@ -924,6 +1368,7 @@ function registrarEliminacion(tipo, id, nombre, categoria, stockAlBorrar, precio
 }
 
 function menuAgregarCategoria() {
+  requireAdministradorDeHoja_();
   const ui = SpreadsheetApp.getUi();
   const r1 = ui.prompt('Agregar Categoría', 'Nombre de la categoría:', ui.ButtonSet.OK_CANCEL);
   if (r1.getSelectedButton() !== ui.Button.OK) return;
@@ -932,18 +1377,19 @@ function menuAgregarCategoria() {
   const r2 = ui.prompt('Agregar Categoría', 'Letra (1 carácter mayúscula):', ui.ButtonSet.OK_CANCEL);
   if (r2.getSelectedButton() !== ui.Button.OK) return;
   const letra = r2.getResponseText().trim().toUpperCase();
-  return conLock(() => {
-    const almacen = cargarAlmacenDesdeSheet();
+  return conLock_(() => {
+    const almacen = cargarAlmacenDesdeSheet_();
     if (!almacen.agregarCategoria(nombre, letra)) {
       ui.alert('No se pudo agregar. Revisa los registros (Ver → Registros en el editor).');
       return;
     }
-    guardarAlmacenEnSheet(almacen);
+    guardarAlmacenEnSheet_(almacen);
     ui.alert(`✅ Categoría "${nombre}" agregada con letra ${letra}.`);
   });
 }
 
 function configurarProteccionCategorias() {
+  requireAdministradorDeHoja_();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const hoja = ss.getSheetByName(NOMBRE_HOJA_CATEGORIAS);
   if (!hoja) { SpreadsheetApp.getUi().alert('No existe la pestaña Categorias.'); return; }
@@ -953,7 +1399,7 @@ function configurarProteccionCategorias() {
   if (!triggers.some(t => t.getHandlerFunction() === 'onEditRevertCategorias')) {
     ScriptApp.newTrigger('onEditRevertCategorias').forSpreadsheet(ss).onEdit().create();
   }
-  const almacen = cargarAlmacenDesdeSheet();
+  const almacen = cargarAlmacenDesdeSheet_();
   PropertiesService.getScriptProperties().setProperty(
     'categorias_backup',
     JSON.stringify(almacen.categorias.map(c => ({ nombre: c.nombre, letra: c.letra, ultimo: c.ultimo })))
@@ -980,13 +1426,15 @@ function onEditRevertCategorias(e) {
 }
 
 function abrirDialogoEliminarProducto() {
+  requireAdministradorDeHoja_();
   const html = HtmlService.createTemplateFromFile('DialogoEliminarProducto')
     .evaluate().setWidth(520).setHeight(620);
   SpreadsheetApp.getUi().showModalDialog(html, 'Eliminar Producto');
 }
 
 function getDatosParaEliminarProducto() {
-  const almacen = cargarAlmacenDesdeSheet();
+  requireAdministradorDeHoja_();
+  const almacen = cargarAlmacenDesdeSheet_();
   const productos = almacen.productos.map(p => {
     const combosQueLoUsan = almacen.combos.filter(c =>
       c.componentes.some(k => k.producto.id === p.id)
@@ -1006,9 +1454,10 @@ function getDatosParaEliminarProducto() {
 }
 
 function ejecutarEliminarProductoDesdeDialogo(idProducto, confirmoStock) {
-  return conLock(() => {
+  requireAdministradorDeHoja_();
+  return conLock_(() => {
     try {
-      const almacen = cargarAlmacenDesdeSheet();
+      const almacen = cargarAlmacenDesdeSheet_();
       const producto = almacen.buscarProducto(idProducto);
       if (!producto) return { ok: false, mensaje: `No existe el producto ${idProducto}.` };
 
@@ -1032,8 +1481,8 @@ function ejecutarEliminarProductoDesdeDialogo(idProducto, confirmoStock) {
       if (!almacen.eliminarProducto(idProducto)) {
         return { ok: false, mensaje: 'No se pudo eliminar. Revisa los registros.' };
       }
-      guardarAlmacenEnSheet(almacen);
-      registrarEliminacion('Producto', idProducto, nombre, categoria, stockAlBorrar, precio, 'Manual');
+      guardarAlmacenEnSheet_(almacen);
+      registrarEliminacion_('Producto', idProducto, nombre, categoria, stockAlBorrar, precio, 'Manual');
       return { ok: true, mensaje: `Producto ${idProducto} (${nombre}) eliminado.` };
     } catch (e) {
       return { ok: false, mensaje: 'Error: ' + e.message };
@@ -1042,13 +1491,15 @@ function ejecutarEliminarProductoDesdeDialogo(idProducto, confirmoStock) {
 }
 
 function abrirDialogoEliminarCategoria() {
+  requireAdministradorDeHoja_();
   const html = HtmlService.createTemplateFromFile('DialogoEliminarCategoria')
     .evaluate().setWidth(560).setHeight(680);
   SpreadsheetApp.getUi().showModalDialog(html, 'Eliminar Categoría');
 }
 
 function getDatosParaEliminarCategoria() {
-  const almacen = cargarAlmacenDesdeSheet();
+  requireAdministradorDeHoja_();
+  const almacen = cargarAlmacenDesdeSheet_();
   const categorias = almacen.categorias.map(c => {
     const productos = almacen.productos.filter(p => p.categoria === c.nombre);
     const idsProductos = productos.map(p => p.id);
@@ -1066,9 +1517,10 @@ function getDatosParaEliminarCategoria() {
 }
 
 function ejecutarEliminarCategoriaDesdeDialogo(nombreCategoria, nombreConfirmacion) {
-  return conLock(() => {
+  requireAdministradorDeHoja_();
+  return conLock_(() => {
     try {
-      const almacen = cargarAlmacenDesdeSheet();
+      const almacen = cargarAlmacenDesdeSheet_();
       const categoria = almacen.categorias.find(c => c.nombre === nombreCategoria);
       if (!categoria) return { ok: false, mensaje: `No existe la categoría ${nombreCategoria}.` };
       if (nombreConfirmacion.trim() !== nombreCategoria) {
@@ -1092,15 +1544,15 @@ function ejecutarEliminarCategoriaDesdeDialogo(nombreCategoria, nombreConfirmaci
       const posCat = almacen.categorias.findIndex(c => c.nombre === nombreCategoria);
       if (posCat !== -1) almacen.categorias.splice(posCat, 1);
 
-      guardarAlmacenEnSheet(almacen);
+      guardarAlmacenEnSheet_(almacen);
 
       combosAEliminar.forEach(c => {
-        registrarEliminacion('Combo', c.id, c.nombre, '-', 0, c.precio, `Cascada por categoría ${nombreCategoria}`);
+        registrarEliminacion_('Combo', c.id, c.nombre, '-', 0, c.precio, `Cascada por categoría ${nombreCategoria}`);
       });
       productosAEliminar.forEach(p => {
-        registrarEliminacion('Producto', p.id, p.nombre, p.categoria, p.stock, p.precio, `Cascada por categoría ${nombreCategoria}`);
+        registrarEliminacion_('Producto', p.id, p.nombre, p.categoria, p.stock, p.precio, `Cascada por categoría ${nombreCategoria}`);
       });
-      registrarEliminacion('Categoría', '-', nombreCategoria, '-', 0, 0,
+      registrarEliminacion_('Categoría', '-', nombreCategoria, '-', 0, 0,
         `${productosAEliminar.length} productos y ${combosAEliminar.length} combos eliminados`);
 
       return { ok: true, mensaje: `Categoría "${nombreCategoria}" eliminada. Se borraron ${productosAEliminar.length} producto(s) y ${combosAEliminar.length} combo(s).` };
@@ -1111,7 +1563,8 @@ function ejecutarEliminarCategoriaDesdeDialogo(nombreCategoria, nombreConfirmaci
 }
 
 function menuVerificarIntegridad() {
-  const almacen = cargarAlmacenDesdeSheet();
+  requireAdministradorDeHoja_();
+  const almacen = cargarAlmacenDesdeSheet_();
   const problemas = [];
 
   const idsVistos = {};
@@ -1174,6 +1627,7 @@ function menuVerificarIntegridad() {
 }
 
 function irAlDashboard() {
+  requireAdministradorDeHoja_();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const hoja = ss.getSheetByName('Proyecto SIS101');
   if (!hoja) {
@@ -1184,6 +1638,7 @@ function irAlDashboard() {
 }
 
 function instalarDashboard() {
+  requireAdministradorDeHoja_();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let hoja = ss.getSheetByName('Proyecto SIS101');
   if (!hoja) hoja = ss.insertSheet('Proyecto SIS101', 0);
@@ -1334,24 +1789,28 @@ function instalarDashboard() {
 }
 
 function abrirDialogoAgregarCombo() {
+  requireAdministradorDeHoja_();
   const html = HtmlService.createTemplateFromFile('DialogoAgregarCombo')
     .evaluate().setWidth(520).setHeight(680);
   SpreadsheetApp.getUi().showModalDialog(html, 'Agregar Combo');
 }
 
 function abrirDialogoModificarCombo() {
+  requireAdministradorDeHoja_();
   const html = HtmlService.createTemplateFromFile('DialogoModificarCombo')
     .evaluate().setWidth(520).setHeight(720);
   SpreadsheetApp.getUi().showModalDialog(html, 'Modificar Combo');
 }
 
 function getDatosParaAgregarCombo() {
-  const almacen = cargarAlmacenDesdeSheet();
+  requireAdministradorDeHoja_();
+  const almacen = cargarAlmacenDesdeSheet_();
   return datosDialogoCombo_(almacen);
 }
 
 function getDatosParaModificarCombo() {
-  const almacen = cargarAlmacenDesdeSheet();
+  requireAdministradorDeHoja_();
+  const almacen = cargarAlmacenDesdeSheet_();
   return datosDialogoCombo_(almacen);
 }
 
@@ -1374,7 +1833,8 @@ function datosDialogoCombo_(almacen) {
 }
 
 function ejecutarAgregarComboDesdeDialogo(nombre, precio, componentes) {
-  return conLock(() => {
+  requireAdministradorDeHoja_();
+  return conLock_(() => {
     try {
       if (!nombre || nombre.trim() === '') {
         return { ok: false, mensaje: 'El nombre no puede estar vacío.' };
@@ -1397,7 +1857,7 @@ function ejecutarAgregarComboDesdeDialogo(nombre, precio, componentes) {
         }
       }
 
-      const almacen = cargarAlmacenDesdeSheet();
+      const almacen = cargarAlmacenDesdeSheet_();
 
       if (almacen.combos.some(x => x.nombre.toLowerCase() === nombre.toLowerCase())) {
         return { ok: false, mensaje: `Ya existe un combo llamado "${nombre}".` };
@@ -1417,7 +1877,7 @@ function ejecutarAgregarComboDesdeDialogo(nombre, precio, componentes) {
         return { ok: false, mensaje: 'No se pudo agregar el combo. Revisa los registros.' };
       }
 
-      guardarAlmacenEnSheet(almacen);
+      guardarAlmacenEnSheet_(almacen);
       return { ok: true, mensaje: `Combo "${nombre}" agregado con ID ${nuevoCombo.id}.` };
     } catch (e) {
       return { ok: false, mensaje: 'Error: ' + e.message };
@@ -1426,7 +1886,8 @@ function ejecutarAgregarComboDesdeDialogo(nombre, precio, componentes) {
 }
 
 function ejecutarModificarComboDesdeDialogo(idCombo, nombre, precio, componentes) {
-  return conLock(() => {
+  requireAdministradorDeHoja_();
+  return conLock_(() => {
     try {
       const id = String(idCombo || '');
       const nombreLimpio = String(nombre || '').trim();
@@ -1448,7 +1909,7 @@ function ejecutarModificarComboDesdeDialogo(idCombo, nombre, precio, componentes
         return { ok: false, mensaje: 'Las cantidades deben ser números enteros mayores a 0.' };
       }
 
-      const almacen = cargarAlmacenDesdeSheet();
+      const almacen = cargarAlmacenDesdeSheet_();
       const combo = almacen.buscarCombo(id);
       if (!combo) return { ok: false, mensaje: `No existe el combo ${id}.` };
       if (almacen.combos.some(c => c.id !== id && c.nombre.toLowerCase() === nombreLimpio.toLowerCase())) {
@@ -1463,7 +1924,7 @@ function ejecutarModificarComboDesdeDialogo(idCombo, nombre, precio, componentes
       }
 
       combo.modificar(nombreLimpio, precioNumero, componentesObjetos);
-      guardarAlmacenEnSheet(almacen);
+      guardarAlmacenEnSheet_(almacen);
       return { ok: true, mensaje: `Combo "${nombreLimpio}" (${id}) modificado.` };
     } catch (e) {
       return { ok: false, mensaje: 'Error: ' + e.message };
@@ -1472,13 +1933,15 @@ function ejecutarModificarComboDesdeDialogo(idCombo, nombre, precio, componentes
 }
 
 function abrirDialogoModificarProducto() {
+  requireAdministradorDeHoja_();
   const html = HtmlService.createTemplateFromFile('DialogoModificarProducto')
     .evaluate().setWidth(520).setHeight(700);
   SpreadsheetApp.getUi().showModalDialog(html, 'Modificar Producto');
 }
 
 function getDatosParaModificarProducto() {
-  const almacen = cargarAlmacenDesdeSheet();
+  requireAdministradorDeHoja_();
+  const almacen = cargarAlmacenDesdeSheet_();
   const productos = almacen.productos.map(p => {
     const combosQueLoUsan = almacen.combos
       .filter(c => c.componentes.some(k => k.producto.id === p.id))
@@ -1498,7 +1961,8 @@ function getDatosParaModificarProducto() {
 }
 
 function ejecutarModificarProductoDesdeDialogo(idProducto, nombre, precio, stock, porciones, precioVaso) {
-  return conLock(() => {
+  requireAdministradorDeHoja_();
+  return conLock_(() => {
     try {
       if (!nombre || nombre.trim() === '') {
         return { ok: false, mensaje: 'El nombre no puede estar vacío.' };
@@ -1510,7 +1974,7 @@ function ejecutarModificarProductoDesdeDialogo(idProducto, nombre, precio, stock
         return { ok: false, mensaje: 'Porciones y precio por vaso deben ser ambos > 0 o ambos = 0.' };
       }
 
-      const almacen = cargarAlmacenDesdeSheet();
+      const almacen = cargarAlmacenDesdeSheet_();
       const producto = almacen.buscarProducto(idProducto);
       if (!producto) {
         return { ok: false, mensaje: `No existe el producto ${idProducto}.` };
@@ -1530,7 +1994,7 @@ function ejecutarModificarProductoDesdeDialogo(idProducto, nombre, precio, stock
       producto.porciones = porciones;
       producto.precioVaso = precioVaso;
 
-      guardarAlmacenEnSheet(almacen);
+      guardarAlmacenEnSheet_(almacen);
 
       let detalle = `ID ${idProducto}`;
       if (nombreCambio) {

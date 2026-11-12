@@ -31,6 +31,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; min-width: 320px; background: var(--canvas); color: var(--ink); }
 button, input, select { font: inherit; }
 button { color: inherit; }
@@ -118,6 +119,8 @@ td { padding: 12px 18px; border-top: 1px solid #eef0ec; color: #48534d; font-siz
 tbody tr:hover { background: #fcfdfb; }
 .item-cell { display: flex; align-items: center; gap: 10px; }
 .item-avatar { display: grid; flex: 0 0 31px; width: 31px; aspect-ratio: 1; place-items: center; border-radius: 6px; background: var(--green-soft); color: var(--green); font-size: 11px; font-weight: 700; }
+.item-avatar.product-avatar { overflow: hidden; padding: 0; }
+.product-thumbnail { display: block; width: 100%; height: 100%; object-fit: cover; }
 .item-avatar.combo-avatar { background: #fbf0df; color: #9c6a24; }
 .item-name { display: grid; gap: 3px; }
 .item-name strong { color: var(--ink); font-size: 11px; font-weight: 700; }
@@ -159,6 +162,22 @@ tbody tr:hover { background: #fcfdfb; }
 .category-card .row-action { margin: -4px -4px 0 0; }
 .sales-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; margin-bottom: 19px; }
 .sale-panel { padding: 20px; }
+.account-create-panel { margin-bottom: 16px; padding: 20px; }
+.payment-settings-panel { padding: 0; }
+.payment-settings-panel form { padding: 20px; }
+.payment-qr { display: grid; justify-items: start; gap: 9px; margin: -4px 0 14px; padding: 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--canvas); }
+.payment-qr-image { display: block; width: min(190px, 100%); max-height: 190px; object-fit: contain; border-radius: 5px; background: #fff; }
+.payment-qr .form-hint { margin: 0; }
+.payment-qr-missing { padding: 12px; border: 1px solid var(--line); border-radius: 6px; }
+.payment-confirmation { display: flex; align-items: flex-start; gap: 8px; color: var(--ink); cursor: pointer; font-size: 11px; line-height: 1.5; }
+.payment-confirmation input { flex: 0 0 auto; margin: 2px 0 0; accent-color: var(--green); }
+.payment-qr-preview { margin: 0 0 14px; }
+.account-list-panel { overflow: hidden; }
+.account-list-panel .table-wrap { max-height: 520px; }
+.account-list-panel th:last-child, .account-list-panel td:last-child { text-align: right; }
+.account-list-panel td:first-child strong { color: var(--ink); }
+.account-create-panel .form-hint { margin-top: 0; }
+.account-create-panel .button { margin-top: 2px; }
 .sale-panel h2 { margin-bottom: 5px; font: 700 15px "Inter", sans-serif; }
 .sale-panel > p { margin-bottom: 19px; color: var(--muted); font-size: 11px; }
 .sale-total { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; padding: 12px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
@@ -169,6 +188,8 @@ tbody tr:hover { background: #fcfdfb; }
 .form-field .field, .form-field .select-field { width: 100%; }
 .form-hint { margin: -5px 0 12px; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .form-error { margin: 0 0 12px; color: var(--red); font-size: 11px; }
+.product-image-preview { width: 84px; height: 84px; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); }
+.product-image-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .form-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 6px; }
 .component-list { display: grid; gap: 8px; margin-bottom: 9px; }
 .component-row { display: grid; grid-template-columns: minmax(0, 1fr) 74px 32px; gap: 7px; align-items: center; }
@@ -189,6 +210,19 @@ tbody tr:hover { background: #fcfdfb; }
 .toast { position: fixed; right: 23px; bottom: 23px; z-index: 80; max-width: min(390px, calc(100vw - 32px)); padding: 12px 16px; border-radius: 6px; background: var(--green-dark); color: white; box-shadow: var(--shadow); font-size: 12px; opacity: 0; pointer-events: none; transform: translateY(9px); transition: opacity .2s ease, transform .2s ease; }
 .toast.visible { opacity: 1; transform: translateY(0); }
 .toast.error { background: #8f352e; }
+.login-screen { display: grid; min-height: 100vh; place-items: center; padding: 22px; background: radial-gradient(circle at 50% 0, #172343, var(--canvas) 48%); }
+.login-card { width: min(100%, 390px); padding: 31px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); box-shadow: var(--shadow); }
+.login-card > .brand-mark { margin-bottom: 22px; }
+.login-card .eyebrow { margin-bottom: 7px; }
+.login-card h1 { margin-bottom: 7px; }
+.login-card .page-subtitle { margin-bottom: 24px; line-height: 1.5; }
+.login-card .form-field label { color: var(--muted); }
+.login-card .field { border-color: var(--line); background: var(--canvas); color: var(--ink); }
+.login-submit { width: 100%; margin-top: 6px; }
+.login-error { margin: 0 0 12px; color: var(--red); font-size: 11px; line-height: 1.5; }
+.user-chip { position: relative; }
+.user-chip .sidebar-action { margin-top: 8px; }
+.admin-only[hidden] { display: none !important; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(8px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
@@ -215,6 +249,7 @@ tbody tr:hover { background: #fcfdfb; }
   .page-heading > .button { flex: 0 0 auto; }
   .dashboard-grid, .sales-grid { grid-template-columns: 1fr; }
   .dashboard-grid { gap: 12px; }
+  .login-card { padding: 25px 20px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -341,7 +376,20 @@ tbody tr:hover { background: #171c27; }
     </style>
   </head>
   <body>
-    <div class="app-shell">
+    <section class="login-screen" id="login-screen">
+      <form class="login-card" id="login-form">
+        <span class="brand-mark">A</span>
+        <p class="eyebrow">SIS101 · ALMACÉN</p>
+        <h1>Iniciar sesión</h1>
+        <p class="page-subtitle">Ingresa con la cuenta asignada por el administrador.</p>
+        <div class="form-field"><label for="login-username">Usuario</label><input class="field" id="login-username" name="usuario" autocomplete="username" minlength="3" maxlength="32" required></div>
+        <div class="form-field"><label for="login-password">Contraseña</label><input class="field" id="login-password" name="password" type="password" autocomplete="current-password" maxlength="128" required></div>
+        <p class="login-error" id="login-error" role="alert" hidden></p>
+        <button class="button button-primary login-submit" type="submit">Entrar</button>
+      </form>
+    </section>
+
+    <div class="app-shell" id="app-shell" hidden>
       <aside class="sidebar" id="sidebar">
         <a class="brand" href="#dashboard" aria-label="Almacén, inicio">
           <span class="brand-mark">A</span>
@@ -350,21 +398,27 @@ tbody tr:hover { background: #171c27; }
 
         <div class="nav-label">GESTIÓN</div>
         <nav class="main-nav" aria-label="Navegación principal">
-          <button class="nav-item active" data-view="dashboard"><span class="nav-icon">◫</span>Resumen</button>
+          <button class="nav-item active admin-only" data-view="dashboard"><span class="nav-icon">◫</span>Resumen</button>
           <button class="nav-item" data-view="productos"><span class="nav-icon">▤</span>Productos<span class="nav-count" id="nav-product-count">0</span></button>
           <button class="nav-item" data-view="combos"><span class="nav-icon">▦</span>Combos<span class="nav-count" id="nav-combo-count">0</span></button>
-          <button class="nav-item" data-view="ventas"><span class="nav-icon">↗</span>Ventas</button>
+          <button class="nav-item employee-only" data-view="ventas"><span class="nav-icon">↗</span>Ventas</button>
+          <button class="nav-item" data-view="historial"><span class="nav-icon">▤</span>Historial</button>
+          <button class="nav-item admin-only" data-view="usuarios"><span class="nav-icon">♙</span>Cuentas</button>
         </nav>
 
-        <div class="nav-label nav-label-spaced">CONFIGURACIÓN</div>
-        <nav class="main-nav" aria-label="Configuración">
-          <button class="nav-item" data-view="categorias"><span class="nav-icon">▧</span>Categorías</button>
-        </nav>
+        <div class="admin-only">
+          <div class="nav-label nav-label-spaced">CONFIGURACIÓN</div>
+          <nav class="main-nav" aria-label="Configuración">
+            <button class="nav-item" data-view="categorias"><span class="nav-icon">▧</span>Categorías</button>
+          </nav>
+        </div>
 
         <div class="sidebar-bottom">
           <div class="storage-indicator"><span class="status-dot"></span><span id="storage-label">Datos guardados en este dispositivo</span></div>
-          <button class="sidebar-action" id="export-data"><span>↓</span> Exportar respaldo</button>
-          <div class="user-chip"><span class="user-avatar">S</span><span><strong>SIS101</strong><small>Administración</small></span></div>
+          <button class="sidebar-action admin-only" id="export-data"><span>↓</span> Exportar respaldo</button>
+          <button class="sidebar-action" id="change-password"><span>⚿</span> Cambiar contraseña</button>
+          <button class="sidebar-action" id="logout-button"><span>↪</span> Cerrar sesión</button>
+          <div class="user-chip"><span class="user-avatar" id="user-avatar">S</span><span><strong id="user-name">SIS101</strong><small id="user-role">Administración</small></span></div>
         </div>
       </aside>
 
@@ -374,7 +428,7 @@ tbody tr:hover { background: #171c27; }
           <div class="breadcrumb"><span>Almacén</span><span class="crumb-separator">/</span><strong id="current-section">Resumen</strong></div>
           <div class="topbar-actions">
             <span class="today-label" id="today-label"></span>
-            <button class="button button-primary button-small" data-action="add-product"><span class="button-plus">+</span> Nuevo producto</button>
+            <button class="button button-primary button-small admin-only" data-action="add-product"><span class="button-plus">+</span> Nuevo producto</button>
           </div>
         </header>
 
@@ -395,7 +449,7 @@ tbody tr:hover { background: #171c27; }
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script>
 class Producto {
-  constructor(nombre, categoria, precio, stock, porciones, precioVaso) {
+  constructor(nombre, categoria, precio, stock, porciones, precioVaso, imagen = "") {
     this.id = "";
     this.nombre = nombre;
     this.categoria = categoria;
@@ -404,6 +458,7 @@ class Producto {
     this.porciones = porciones;
     this.precioVaso = precioVaso;
     this.vasosSueltos = 0;
+    this.imagen = imagen;
   }
 
   ver() {
@@ -412,11 +467,12 @@ class Producto {
     );
   }
 
-  modificar(nombre, precio, porciones, precioVaso) {
+  modificar(nombre, precio, porciones, precioVaso, imagen = this.imagen) {
     this.nombre = nombre;
     this.precio = precio;
     this.porciones = porciones;
     this.precioVaso = precioVaso;
+    this.imagen = imagen;
   }
 
   aumentarStock(cantidad) {
@@ -484,6 +540,7 @@ class Producto {
       this.porciones,
       this.precioVaso,
       this.vasosSueltos,
+      this.imagen,
     ];
   }
 }
@@ -756,6 +813,2306 @@ if (typeof module !== "undefined") {
 }
     </script>
     <script>
+//---------------------------------------------------------------------
+//
+// QR Code Generator for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+//
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+
+var qrcode = function() {
+
+  //---------------------------------------------------------------------
+  // qrcode
+  //---------------------------------------------------------------------
+
+  /**
+   * qrcode
+   * @param typeNumber 1 to 40
+   * @param errorCorrectionLevel 'L','M','Q','H'
+   */
+  var qrcode = function(typeNumber, errorCorrectionLevel) {
+
+    var PAD0 = 0xEC;
+    var PAD1 = 0x11;
+
+    var _typeNumber = typeNumber;
+    var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+    var _modules = null;
+    var _moduleCount = 0;
+    var _dataCache = null;
+    var _dataList = [];
+
+    var _this = {};
+
+    var makeImpl = function(test, maskPattern) {
+
+      _moduleCount = _typeNumber * 4 + 17;
+      _modules = function(moduleCount) {
+        var modules = new Array(moduleCount);
+        for (var row = 0; row < moduleCount; row += 1) {
+          modules[row] = new Array(moduleCount);
+          for (var col = 0; col < moduleCount; col += 1) {
+            modules[row][col] = null;
+          }
+        }
+        return modules;
+      }(_moduleCount);
+
+      setupPositionProbePattern(0, 0);
+      setupPositionProbePattern(_moduleCount - 7, 0);
+      setupPositionProbePattern(0, _moduleCount - 7);
+      setupPositionAdjustPattern();
+      setupTimingPattern();
+      setupTypeInfo(test, maskPattern);
+
+      if (_typeNumber >= 7) {
+        setupTypeNumber(test);
+      }
+
+      if (_dataCache == null) {
+        _dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+      }
+
+      mapData(_dataCache, maskPattern);
+    };
+
+    var setupPositionProbePattern = function(row, col) {
+
+      for (var r = -1; r <= 7; r += 1) {
+
+        if (row + r <= -1 || _moduleCount <= row + r) continue;
+
+        for (var c = -1; c <= 7; c += 1) {
+
+          if (col + c <= -1 || _moduleCount <= col + c) continue;
+
+          if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+              || (0 <= c && c <= 6 && (r == 0 || r == 6) )
+              || (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+            _modules[row + r][col + c] = true;
+          } else {
+            _modules[row + r][col + c] = false;
+          }
+        }
+      }
+    };
+
+    var getBestMaskPattern = function() {
+
+      var minLostPoint = 0;
+      var pattern = 0;
+
+      for (var i = 0; i < 8; i += 1) {
+
+        makeImpl(true, i);
+
+        var lostPoint = QRUtil.getLostPoint(_this);
+
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+        }
+      }
+
+      return pattern;
+    };
+
+    var setupTimingPattern = function() {
+
+      for (var r = 8; r < _moduleCount - 8; r += 1) {
+        if (_modules[r][6] != null) {
+          continue;
+        }
+        _modules[r][6] = (r % 2 == 0);
+      }
+
+      for (var c = 8; c < _moduleCount - 8; c += 1) {
+        if (_modules[6][c] != null) {
+          continue;
+        }
+        _modules[6][c] = (c % 2 == 0);
+      }
+    };
+
+    var setupPositionAdjustPattern = function() {
+
+      var pos = QRUtil.getPatternPosition(_typeNumber);
+
+      for (var i = 0; i < pos.length; i += 1) {
+
+        for (var j = 0; j < pos.length; j += 1) {
+
+          var row = pos[i];
+          var col = pos[j];
+
+          if (_modules[row][col] != null) {
+            continue;
+          }
+
+          for (var r = -2; r <= 2; r += 1) {
+
+            for (var c = -2; c <= 2; c += 1) {
+
+              if (r == -2 || r == 2 || c == -2 || c == 2
+                  || (r == 0 && c == 0) ) {
+                _modules[row + r][col + c] = true;
+              } else {
+                _modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var setupTypeNumber = function(test) {
+
+      var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+      }
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    };
+
+    var setupTypeInfo = function(test, maskPattern) {
+
+      var data = (_errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+
+      // vertical
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 6) {
+          _modules[i][8] = mod;
+        } else if (i < 8) {
+          _modules[i + 1][8] = mod;
+        } else {
+          _modules[_moduleCount - 15 + i][8] = mod;
+        }
+      }
+
+      // horizontal
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 8) {
+          _modules[8][_moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          _modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          _modules[8][15 - i - 1] = mod;
+        }
+      }
+
+      // fixed module
+      _modules[_moduleCount - 8][8] = (!test);
+    };
+
+    var mapData = function(data, maskPattern) {
+
+      var inc = -1;
+      var row = _moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      var maskFunc = QRUtil.getMaskFunction(maskPattern);
+
+      for (var col = _moduleCount - 1; col > 0; col -= 2) {
+
+        if (col == 6) col -= 1;
+
+        while (true) {
+
+          for (var c = 0; c < 2; c += 1) {
+
+            if (_modules[row][col - c] == null) {
+
+              var dark = false;
+
+              if (byteIndex < data.length) {
+                dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+              }
+
+              var mask = maskFunc(row, col - c);
+
+              if (mask) {
+                dark = !dark;
+              }
+
+              _modules[row][col - c] = dark;
+              bitIndex -= 1;
+
+              if (bitIndex == -1) {
+                byteIndex += 1;
+                bitIndex = 7;
+              }
+            }
+          }
+
+          row += inc;
+
+          if (row < 0 || _moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    };
+
+    var createBytes = function(buffer, rsBlocks) {
+
+      var offset = 0;
+
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+
+      for (var r = 0; r < rsBlocks.length; r += 1) {
+
+        var dcCount = rsBlocks[r].dataCount;
+        var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+
+        dcdata[r] = new Array(dcCount);
+
+        for (var i = 0; i < dcdata[r].length; i += 1) {
+          dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+        }
+        offset += dcCount;
+
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i += 1) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+        }
+      }
+
+      var totalCodeCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalCodeCount += rsBlocks[i].totalCount;
+      }
+
+      var data = new Array(totalCodeCount);
+      var index = 0;
+
+      for (var i = 0; i < maxDcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < dcdata[r].length) {
+            data[index] = dcdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      for (var i = 0; i < maxEcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < ecdata[r].length) {
+            data[index] = ecdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      return data;
+    };
+
+    var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+
+      var buffer = qrBitBuffer();
+
+      for (var i = 0; i < dataList.length; i += 1) {
+        var data = dataList[i];
+        buffer.put(data.getMode(), 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+        data.write(buffer);
+      }
+
+      // calc num max data.
+      var totalDataCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalDataCount += rsBlocks[i].dataCount;
+      }
+
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw 'code length overflow. ('
+          + buffer.getLengthInBits()
+          + '>'
+          + totalDataCount * 8
+          + ')';
+      }
+
+      // end code
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+
+      // padding
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+
+      // padding
+      while (true) {
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD0, 8);
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD1, 8);
+      }
+
+      return createBytes(buffer, rsBlocks);
+    };
+
+    _this.addData = function(data, mode) {
+
+      mode = mode || 'Byte';
+
+      var newData = null;
+
+      switch(mode) {
+      case 'Numeric' :
+        newData = qrNumber(data);
+        break;
+      case 'Alphanumeric' :
+        newData = qrAlphaNum(data);
+        break;
+      case 'Byte' :
+        newData = qr8BitByte(data);
+        break;
+      case 'Kanji' :
+        newData = qrKanji(data);
+        break;
+      default :
+        throw 'mode:' + mode;
+      }
+
+      _dataList.push(newData);
+      _dataCache = null;
+    };
+
+    _this.isDark = function(row, col) {
+      if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+        throw row + ',' + col;
+      }
+      return _modules[row][col];
+    };
+
+    _this.getModuleCount = function() {
+      return _moduleCount;
+    };
+
+    _this.make = function() {
+      if (_typeNumber < 1) {
+        var typeNumber = 1;
+
+        for (; typeNumber < 40; typeNumber++) {
+          var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, _errorCorrectionLevel);
+          var buffer = qrBitBuffer();
+
+          for (var i = 0; i < _dataList.length; i++) {
+            var data = _dataList[i];
+            buffer.put(data.getMode(), 4);
+            buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+            data.write(buffer);
+          }
+
+          var totalDataCount = 0;
+          for (var i = 0; i < rsBlocks.length; i++) {
+            totalDataCount += rsBlocks[i].dataCount;
+          }
+
+          if (buffer.getLengthInBits() <= totalDataCount * 8) {
+            break;
+          }
+        }
+
+        _typeNumber = typeNumber;
+      }
+
+      makeImpl(false, getBestMaskPattern() );
+    };
+
+    _this.createTableTag = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var qrHtml = '';
+
+      qrHtml += '<table style="';
+      qrHtml += ' border-width: 0px; border-style: none;';
+      qrHtml += ' border-collapse: collapse;';
+      qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
+      qrHtml += '">';
+      qrHtml += '<tbody>';
+
+      for (var r = 0; r < _this.getModuleCount(); r += 1) {
+
+        qrHtml += '<tr>';
+
+        for (var c = 0; c < _this.getModuleCount(); c += 1) {
+          qrHtml += '<td style="';
+          qrHtml += ' border-width: 0px; border-style: none;';
+          qrHtml += ' border-collapse: collapse;';
+          qrHtml += ' padding: 0px; margin: 0px;';
+          qrHtml += ' width: ' + cellSize + 'px;';
+          qrHtml += ' height: ' + cellSize + 'px;';
+          qrHtml += ' background-color: ';
+          qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
+          qrHtml += ';';
+          qrHtml += '"/>';
+        }
+
+        qrHtml += '</tr>';
+      }
+
+      qrHtml += '</tbody>';
+      qrHtml += '</table>';
+
+      return qrHtml;
+    };
+
+    _this.createSvgTag = function(cellSize, margin, alt, title) {
+
+      var opts = {};
+      if (typeof arguments[0] == 'object') {
+        // Called by options.
+        opts = arguments[0];
+        // overwrite cellSize and margin.
+        cellSize = opts.cellSize;
+        margin = opts.margin;
+        alt = opts.alt;
+        title = opts.title;
+      }
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      // Compose alt property surrogate
+      alt = (typeof alt === 'string') ? {text: alt} : alt || {};
+      alt.text = alt.text || null;
+      alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
+
+      // Compose title property surrogate
+      title = (typeof title === 'string') ? {text: title} : title || {};
+      title.text = title.text || null;
+      title.id = (title.text) ? title.id || 'qrcode-title' : null;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var c, mc, r, mr, qrSvg='', rect;
+
+      rect = 'l' + cellSize + ',0 0,' + cellSize +
+        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+
+      qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
+      qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
+      qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
+      qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+      qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
+          escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
+      qrSvg += '>';
+      qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
+          escapeXml(title.text) + '</title>' : '';
+      qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
+          escapeXml(alt.text) + '</description>' : '';
+      qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
+      qrSvg += '<path d="';
+
+      for (r = 0; r < _this.getModuleCount(); r += 1) {
+        mr = r * cellSize + margin;
+        for (c = 0; c < _this.getModuleCount(); c += 1) {
+          if (_this.isDark(r, c) ) {
+            mc = c*cellSize+margin;
+            qrSvg += 'M' + mc + ',' + mr + rect;
+          }
+        }
+      }
+
+      qrSvg += '" stroke="transparent" fill="black"/>';
+      qrSvg += '</svg>';
+
+      return qrSvg;
+    };
+
+    _this.createDataURL = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      return createDataURL(size, size, function(x, y) {
+        if (min <= x && x < max && min <= y && y < max) {
+          var c = Math.floor( (x - min) / cellSize);
+          var r = Math.floor( (y - min) / cellSize);
+          return _this.isDark(r, c)? 0 : 1;
+        } else {
+          return 1;
+        }
+      } );
+    };
+
+    _this.createImgTag = function(cellSize, margin, alt) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+
+      var img = '';
+      img += '<img';
+      img += '\u0020src="';
+      img += _this.createDataURL(cellSize, margin);
+      img += '"';
+      img += '\u0020width="';
+      img += size;
+      img += '"';
+      img += '\u0020height="';
+      img += size;
+      img += '"';
+      if (alt) {
+        img += '\u0020alt="';
+        img += escapeXml(alt);
+        img += '"';
+      }
+      img += '/>';
+
+      return img;
+    };
+
+    var escapeXml = function(s) {
+      var escaped = '';
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charAt(i);
+        switch(c) {
+        case '<': escaped += '&lt;'; break;
+        case '>': escaped += '&gt;'; break;
+        case '&': escaped += '&amp;'; break;
+        case '"': escaped += '&quot;'; break;
+        default : escaped += c; break;
+        }
+      }
+      return escaped;
+    };
+
+    var _createHalfASCII = function(margin) {
+      var cellSize = 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r1, r2, p;
+
+      var blocks = {
+        '██': '█',
+        '█ ': '▀',
+        ' █': '▄',
+        '  ': ' '
+      };
+
+      var blocksLastLineNoMargin = {
+        '██': '▀',
+        '█ ': '▀',
+        ' █': ' ',
+        '  ': ' '
+      };
+
+      var ascii = '';
+      for (y = 0; y < size; y += 2) {
+        r1 = Math.floor((y - min) / cellSize);
+        r2 = Math.floor((y + 1 - min) / cellSize);
+        for (x = 0; x < size; x += 1) {
+          p = '█';
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
+            p = ' ';
+          }
+
+          if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
+            p += ' ';
+          }
+          else {
+            p += '█';
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
+        }
+
+        ascii += '\n';
+      }
+
+      if (size % 2 && margin > 0) {
+        return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.createASCII = function(cellSize, margin) {
+      cellSize = cellSize || 1;
+
+      if (cellSize < 2) {
+        return _createHalfASCII(margin);
+      }
+
+      cellSize -= 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r, p;
+
+      var white = Array(cellSize+1).join('██');
+      var black = Array(cellSize+1).join('  ');
+
+      var ascii = '';
+      var line = '';
+      for (y = 0; y < size; y += 1) {
+        r = Math.floor( (y - min) / cellSize);
+        line = '';
+        for (x = 0; x < size; x += 1) {
+          p = 1;
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
+            p = 0;
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          line += p ? white : black;
+        }
+
+        for (r = 0; r < cellSize; r += 1) {
+          ascii += line + '\n';
+        }
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.renderTo2dContext = function(context, cellSize) {
+      cellSize = cellSize || 2;
+      var length = _this.getModuleCount();
+      for (var row = 0; row < length; row++) {
+        for (var col = 0; col < length; col++) {
+          context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
+          context.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrcode.stringToBytes
+  //---------------------------------------------------------------------
+
+  qrcode.stringToBytesFuncs = {
+    'default' : function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        bytes.push(c & 0xff);
+      }
+      return bytes;
+    }
+  };
+
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
+
+  //---------------------------------------------------------------------
+  // qrcode.createStringToBytes
+  //---------------------------------------------------------------------
+
+  /**
+   * @param unicodeData base64 string of byte array.
+   * [16bit Unicode],[16bit Bytes], ...
+   * @param numChars
+   */
+  qrcode.createStringToBytes = function(unicodeData, numChars) {
+
+    // create conversion map.
+
+    var unicodeMap = function() {
+
+      var bin = base64DecodeInputStream(unicodeData);
+      var read = function() {
+        var b = bin.read();
+        if (b == -1) throw 'eof';
+        return b;
+      };
+
+      var count = 0;
+      var unicodeMap = {};
+      while (true) {
+        var b0 = bin.read();
+        if (b0 == -1) break;
+        var b1 = read();
+        var b2 = read();
+        var b3 = read();
+        var k = String.fromCharCode( (b0 << 8) | b1);
+        var v = (b2 << 8) | b3;
+        unicodeMap[k] = v;
+        count += 1;
+      }
+      if (count != numChars) {
+        throw count + ' != ' + numChars;
+      }
+
+      return unicodeMap;
+    }();
+
+    var unknownChar = '?'.charCodeAt(0);
+
+    return function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        if (c < 128) {
+          bytes.push(c);
+        } else {
+          var b = unicodeMap[s.charAt(i)];
+          if (typeof b == 'number') {
+            if ( (b & 0xff) == b) {
+              // 1byte
+              bytes.push(b);
+            } else {
+              // 2bytes
+              bytes.push(b >>> 8);
+              bytes.push(b & 0xff);
+            }
+          } else {
+            bytes.push(unknownChar);
+          }
+        }
+      }
+      return bytes;
+    };
+  };
+
+  //---------------------------------------------------------------------
+  // QRMode
+  //---------------------------------------------------------------------
+
+  var QRMode = {
+    MODE_NUMBER :    1 << 0,
+    MODE_ALPHA_NUM : 1 << 1,
+    MODE_8BIT_BYTE : 1 << 2,
+    MODE_KANJI :     1 << 3
+  };
+
+  //---------------------------------------------------------------------
+  // QRErrorCorrectionLevel
+  //---------------------------------------------------------------------
+
+  var QRErrorCorrectionLevel = {
+    L : 1,
+    M : 0,
+    Q : 3,
+    H : 2
+  };
+
+  //---------------------------------------------------------------------
+  // QRMaskPattern
+  //---------------------------------------------------------------------
+
+  var QRMaskPattern = {
+    PATTERN000 : 0,
+    PATTERN001 : 1,
+    PATTERN010 : 2,
+    PATTERN011 : 3,
+    PATTERN100 : 4,
+    PATTERN101 : 5,
+    PATTERN110 : 6,
+    PATTERN111 : 7
+  };
+
+  //---------------------------------------------------------------------
+  // QRUtil
+  //---------------------------------------------------------------------
+
+  var QRUtil = function() {
+
+    var PATTERN_POSITION_TABLE = [
+      [],
+      [6, 18],
+      [6, 22],
+      [6, 26],
+      [6, 30],
+      [6, 34],
+      [6, 22, 38],
+      [6, 24, 42],
+      [6, 26, 46],
+      [6, 28, 50],
+      [6, 30, 54],
+      [6, 32, 58],
+      [6, 34, 62],
+      [6, 26, 46, 66],
+      [6, 26, 48, 70],
+      [6, 26, 50, 74],
+      [6, 30, 54, 78],
+      [6, 30, 56, 82],
+      [6, 30, 58, 86],
+      [6, 34, 62, 90],
+      [6, 28, 50, 72, 94],
+      [6, 26, 50, 74, 98],
+      [6, 30, 54, 78, 102],
+      [6, 28, 54, 80, 106],
+      [6, 32, 58, 84, 110],
+      [6, 30, 58, 86, 114],
+      [6, 34, 62, 90, 118],
+      [6, 26, 50, 74, 98, 122],
+      [6, 30, 54, 78, 102, 126],
+      [6, 26, 52, 78, 104, 130],
+      [6, 30, 56, 82, 108, 134],
+      [6, 34, 60, 86, 112, 138],
+      [6, 30, 58, 86, 114, 142],
+      [6, 34, 62, 90, 118, 146],
+      [6, 30, 54, 78, 102, 126, 150],
+      [6, 24, 50, 76, 102, 128, 154],
+      [6, 28, 54, 80, 106, 132, 158],
+      [6, 32, 58, 84, 110, 136, 162],
+      [6, 26, 54, 82, 110, 138, 166],
+      [6, 30, 58, 86, 114, 142, 170]
+    ];
+    var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+    var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+    var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+    var _this = {};
+
+    var getBCHDigit = function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit += 1;
+        data >>>= 1;
+      }
+      return digit;
+    };
+
+    _this.getBCHTypeInfo = function(data) {
+      var d = data << 10;
+      while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+        d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+      }
+      return ( (data << 10) | d) ^ G15_MASK;
+    };
+
+    _this.getBCHTypeNumber = function(data) {
+      var d = data << 12;
+      while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+        d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+      }
+      return (data << 12) | d;
+    };
+
+    _this.getPatternPosition = function(typeNumber) {
+      return PATTERN_POSITION_TABLE[typeNumber - 1];
+    };
+
+    _this.getMaskFunction = function(maskPattern) {
+
+      switch (maskPattern) {
+
+      case QRMaskPattern.PATTERN000 :
+        return function(i, j) { return (i + j) % 2 == 0; };
+      case QRMaskPattern.PATTERN001 :
+        return function(i, j) { return i % 2 == 0; };
+      case QRMaskPattern.PATTERN010 :
+        return function(i, j) { return j % 3 == 0; };
+      case QRMaskPattern.PATTERN011 :
+        return function(i, j) { return (i + j) % 3 == 0; };
+      case QRMaskPattern.PATTERN100 :
+        return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+      case QRMaskPattern.PATTERN101 :
+        return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+      case QRMaskPattern.PATTERN110 :
+        return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+      case QRMaskPattern.PATTERN111 :
+        return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+
+      default :
+        throw 'bad maskPattern:' + maskPattern;
+      }
+    };
+
+    _this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+      var a = qrPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i += 1) {
+        a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+      }
+      return a;
+    };
+
+    _this.getLengthInBits = function(mode, type) {
+
+      if (1 <= type && type < 10) {
+
+        // 1 - 9
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 10;
+        case QRMode.MODE_ALPHA_NUM : return 9;
+        case QRMode.MODE_8BIT_BYTE : return 8;
+        case QRMode.MODE_KANJI     : return 8;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 27) {
+
+        // 10 - 26
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 12;
+        case QRMode.MODE_ALPHA_NUM : return 11;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 10;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 41) {
+
+        // 27 - 40
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 14;
+        case QRMode.MODE_ALPHA_NUM : return 13;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 12;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else {
+        throw 'type:' + type;
+      }
+    };
+
+    _this.getLostPoint = function(qrcode) {
+
+      var moduleCount = qrcode.getModuleCount();
+
+      var lostPoint = 0;
+
+      // LEVEL1
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount; col += 1) {
+
+          var sameCount = 0;
+          var dark = qrcode.isDark(row, col);
+
+          for (var r = -1; r <= 1; r += 1) {
+
+            if (row + r < 0 || moduleCount <= row + r) {
+              continue;
+            }
+
+            for (var c = -1; c <= 1; c += 1) {
+
+              if (col + c < 0 || moduleCount <= col + c) {
+                continue;
+              }
+
+              if (r == 0 && c == 0) {
+                continue;
+              }
+
+              if (dark == qrcode.isDark(row + r, col + c) ) {
+                sameCount += 1;
+              }
+            }
+          }
+
+          if (sameCount > 5) {
+            lostPoint += (3 + sameCount - 5);
+          }
+        }
+      };
+
+      // LEVEL2
+
+      for (var row = 0; row < moduleCount - 1; row += 1) {
+        for (var col = 0; col < moduleCount - 1; col += 1) {
+          var count = 0;
+          if (qrcode.isDark(row, col) ) count += 1;
+          if (qrcode.isDark(row + 1, col) ) count += 1;
+          if (qrcode.isDark(row, col + 1) ) count += 1;
+          if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+          if (count == 0 || count == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+
+      // LEVEL3
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount - 6; col += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row, col + 1)
+              &&  qrcode.isDark(row, col + 2)
+              &&  qrcode.isDark(row, col + 3)
+              &&  qrcode.isDark(row, col + 4)
+              && !qrcode.isDark(row, col + 5)
+              &&  qrcode.isDark(row, col + 6) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount - 6; row += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row + 1, col)
+              &&  qrcode.isDark(row + 2, col)
+              &&  qrcode.isDark(row + 3, col)
+              &&  qrcode.isDark(row + 4, col)
+              && !qrcode.isDark(row + 5, col)
+              &&  qrcode.isDark(row + 6, col) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      // LEVEL4
+
+      var darkCount = 0;
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount; row += 1) {
+          if (qrcode.isDark(row, col) ) {
+            darkCount += 1;
+          }
+        }
+      }
+
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+
+      return lostPoint;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // QRMath
+  //---------------------------------------------------------------------
+
+  var QRMath = function() {
+
+    var EXP_TABLE = new Array(256);
+    var LOG_TABLE = new Array(256);
+
+    // initialize tables
+    for (var i = 0; i < 8; i += 1) {
+      EXP_TABLE[i] = 1 << i;
+    }
+    for (var i = 8; i < 256; i += 1) {
+      EXP_TABLE[i] = EXP_TABLE[i - 4]
+        ^ EXP_TABLE[i - 5]
+        ^ EXP_TABLE[i - 6]
+        ^ EXP_TABLE[i - 8];
+    }
+    for (var i = 0; i < 255; i += 1) {
+      LOG_TABLE[EXP_TABLE[i] ] = i;
+    }
+
+    var _this = {};
+
+    _this.glog = function(n) {
+
+      if (n < 1) {
+        throw 'glog(' + n + ')';
+      }
+
+      return LOG_TABLE[n];
+    };
+
+    _this.gexp = function(n) {
+
+      while (n < 0) {
+        n += 255;
+      }
+
+      while (n >= 256) {
+        n -= 255;
+      }
+
+      return EXP_TABLE[n];
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrPolynomial
+  //---------------------------------------------------------------------
+
+  function qrPolynomial(num, shift) {
+
+    if (typeof num.length == 'undefined') {
+      throw num.length + '/' + shift;
+    }
+
+    var _num = function() {
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset += 1;
+      }
+      var _num = new Array(num.length - offset + shift);
+      for (var i = 0; i < num.length - offset; i += 1) {
+        _num[i] = num[i + offset];
+      }
+      return _num;
+    }();
+
+    var _this = {};
+
+    _this.getAt = function(index) {
+      return _num[index];
+    };
+
+    _this.getLength = function() {
+      return _num.length;
+    };
+
+    _this.multiply = function(e) {
+
+      var num = new Array(_this.getLength() + e.getLength() - 1);
+
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        for (var j = 0; j < e.getLength(); j += 1) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+        }
+      }
+
+      return qrPolynomial(num, 0);
+    };
+
+    _this.mod = function(e) {
+
+      if (_this.getLength() - e.getLength() < 0) {
+        return _this;
+      }
+
+      var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+
+      var num = new Array(_this.getLength() );
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        num[i] = _this.getAt(i);
+      }
+
+      for (var i = 0; i < e.getLength(); i += 1) {
+        num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+      }
+
+      // recursive call
+      return qrPolynomial(num, 0).mod(e);
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // QRRSBlock
+  //---------------------------------------------------------------------
+
+  var QRRSBlock = function() {
+
+    var RS_BLOCK_TABLE = [
+
+      // L
+      // M
+      // Q
+      // H
+
+      // 1
+      [1, 26, 19],
+      [1, 26, 16],
+      [1, 26, 13],
+      [1, 26, 9],
+
+      // 2
+      [1, 44, 34],
+      [1, 44, 28],
+      [1, 44, 22],
+      [1, 44, 16],
+
+      // 3
+      [1, 70, 55],
+      [1, 70, 44],
+      [2, 35, 17],
+      [2, 35, 13],
+
+      // 4
+      [1, 100, 80],
+      [2, 50, 32],
+      [2, 50, 24],
+      [4, 25, 9],
+
+      // 5
+      [1, 134, 108],
+      [2, 67, 43],
+      [2, 33, 15, 2, 34, 16],
+      [2, 33, 11, 2, 34, 12],
+
+      // 6
+      [2, 86, 68],
+      [4, 43, 27],
+      [4, 43, 19],
+      [4, 43, 15],
+
+      // 7
+      [2, 98, 78],
+      [4, 49, 31],
+      [2, 32, 14, 4, 33, 15],
+      [4, 39, 13, 1, 40, 14],
+
+      // 8
+      [2, 121, 97],
+      [2, 60, 38, 2, 61, 39],
+      [4, 40, 18, 2, 41, 19],
+      [4, 40, 14, 2, 41, 15],
+
+      // 9
+      [2, 146, 116],
+      [3, 58, 36, 2, 59, 37],
+      [4, 36, 16, 4, 37, 17],
+      [4, 36, 12, 4, 37, 13],
+
+      // 10
+      [2, 86, 68, 2, 87, 69],
+      [4, 69, 43, 1, 70, 44],
+      [6, 43, 19, 2, 44, 20],
+      [6, 43, 15, 2, 44, 16],
+
+      // 11
+      [4, 101, 81],
+      [1, 80, 50, 4, 81, 51],
+      [4, 50, 22, 4, 51, 23],
+      [3, 36, 12, 8, 37, 13],
+
+      // 12
+      [2, 116, 92, 2, 117, 93],
+      [6, 58, 36, 2, 59, 37],
+      [4, 46, 20, 6, 47, 21],
+      [7, 42, 14, 4, 43, 15],
+
+      // 13
+      [4, 133, 107],
+      [8, 59, 37, 1, 60, 38],
+      [8, 44, 20, 4, 45, 21],
+      [12, 33, 11, 4, 34, 12],
+
+      // 14
+      [3, 145, 115, 1, 146, 116],
+      [4, 64, 40, 5, 65, 41],
+      [11, 36, 16, 5, 37, 17],
+      [11, 36, 12, 5, 37, 13],
+
+      // 15
+      [5, 109, 87, 1, 110, 88],
+      [5, 65, 41, 5, 66, 42],
+      [5, 54, 24, 7, 55, 25],
+      [11, 36, 12, 7, 37, 13],
+
+      // 16
+      [5, 122, 98, 1, 123, 99],
+      [7, 73, 45, 3, 74, 46],
+      [15, 43, 19, 2, 44, 20],
+      [3, 45, 15, 13, 46, 16],
+
+      // 17
+      [1, 135, 107, 5, 136, 108],
+      [10, 74, 46, 1, 75, 47],
+      [1, 50, 22, 15, 51, 23],
+      [2, 42, 14, 17, 43, 15],
+
+      // 18
+      [5, 150, 120, 1, 151, 121],
+      [9, 69, 43, 4, 70, 44],
+      [17, 50, 22, 1, 51, 23],
+      [2, 42, 14, 19, 43, 15],
+
+      // 19
+      [3, 141, 113, 4, 142, 114],
+      [3, 70, 44, 11, 71, 45],
+      [17, 47, 21, 4, 48, 22],
+      [9, 39, 13, 16, 40, 14],
+
+      // 20
+      [3, 135, 107, 5, 136, 108],
+      [3, 67, 41, 13, 68, 42],
+      [15, 54, 24, 5, 55, 25],
+      [15, 43, 15, 10, 44, 16],
+
+      // 21
+      [4, 144, 116, 4, 145, 117],
+      [17, 68, 42],
+      [17, 50, 22, 6, 51, 23],
+      [19, 46, 16, 6, 47, 17],
+
+      // 22
+      [2, 139, 111, 7, 140, 112],
+      [17, 74, 46],
+      [7, 54, 24, 16, 55, 25],
+      [34, 37, 13],
+
+      // 23
+      [4, 151, 121, 5, 152, 122],
+      [4, 75, 47, 14, 76, 48],
+      [11, 54, 24, 14, 55, 25],
+      [16, 45, 15, 14, 46, 16],
+
+      // 24
+      [6, 147, 117, 4, 148, 118],
+      [6, 73, 45, 14, 74, 46],
+      [11, 54, 24, 16, 55, 25],
+      [30, 46, 16, 2, 47, 17],
+
+      // 25
+      [8, 132, 106, 4, 133, 107],
+      [8, 75, 47, 13, 76, 48],
+      [7, 54, 24, 22, 55, 25],
+      [22, 45, 15, 13, 46, 16],
+
+      // 26
+      [10, 142, 114, 2, 143, 115],
+      [19, 74, 46, 4, 75, 47],
+      [28, 50, 22, 6, 51, 23],
+      [33, 46, 16, 4, 47, 17],
+
+      // 27
+      [8, 152, 122, 4, 153, 123],
+      [22, 73, 45, 3, 74, 46],
+      [8, 53, 23, 26, 54, 24],
+      [12, 45, 15, 28, 46, 16],
+
+      // 28
+      [3, 147, 117, 10, 148, 118],
+      [3, 73, 45, 23, 74, 46],
+      [4, 54, 24, 31, 55, 25],
+      [11, 45, 15, 31, 46, 16],
+
+      // 29
+      [7, 146, 116, 7, 147, 117],
+      [21, 73, 45, 7, 74, 46],
+      [1, 53, 23, 37, 54, 24],
+      [19, 45, 15, 26, 46, 16],
+
+      // 30
+      [5, 145, 115, 10, 146, 116],
+      [19, 75, 47, 10, 76, 48],
+      [15, 54, 24, 25, 55, 25],
+      [23, 45, 15, 25, 46, 16],
+
+      // 31
+      [13, 145, 115, 3, 146, 116],
+      [2, 74, 46, 29, 75, 47],
+      [42, 54, 24, 1, 55, 25],
+      [23, 45, 15, 28, 46, 16],
+
+      // 32
+      [17, 145, 115],
+      [10, 74, 46, 23, 75, 47],
+      [10, 54, 24, 35, 55, 25],
+      [19, 45, 15, 35, 46, 16],
+
+      // 33
+      [17, 145, 115, 1, 146, 116],
+      [14, 74, 46, 21, 75, 47],
+      [29, 54, 24, 19, 55, 25],
+      [11, 45, 15, 46, 46, 16],
+
+      // 34
+      [13, 145, 115, 6, 146, 116],
+      [14, 74, 46, 23, 75, 47],
+      [44, 54, 24, 7, 55, 25],
+      [59, 46, 16, 1, 47, 17],
+
+      // 35
+      [12, 151, 121, 7, 152, 122],
+      [12, 75, 47, 26, 76, 48],
+      [39, 54, 24, 14, 55, 25],
+      [22, 45, 15, 41, 46, 16],
+
+      // 36
+      [6, 151, 121, 14, 152, 122],
+      [6, 75, 47, 34, 76, 48],
+      [46, 54, 24, 10, 55, 25],
+      [2, 45, 15, 64, 46, 16],
+
+      // 37
+      [17, 152, 122, 4, 153, 123],
+      [29, 74, 46, 14, 75, 47],
+      [49, 54, 24, 10, 55, 25],
+      [24, 45, 15, 46, 46, 16],
+
+      // 38
+      [4, 152, 122, 18, 153, 123],
+      [13, 74, 46, 32, 75, 47],
+      [48, 54, 24, 14, 55, 25],
+      [42, 45, 15, 32, 46, 16],
+
+      // 39
+      [20, 147, 117, 4, 148, 118],
+      [40, 75, 47, 7, 76, 48],
+      [43, 54, 24, 22, 55, 25],
+      [10, 45, 15, 67, 46, 16],
+
+      // 40
+      [19, 148, 118, 6, 149, 119],
+      [18, 75, 47, 31, 76, 48],
+      [34, 54, 24, 34, 55, 25],
+      [20, 45, 15, 61, 46, 16]
+    ];
+
+    var qrRSBlock = function(totalCount, dataCount) {
+      var _this = {};
+      _this.totalCount = totalCount;
+      _this.dataCount = dataCount;
+      return _this;
+    };
+
+    var _this = {};
+
+    var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+
+      switch(errorCorrectionLevel) {
+      case QRErrorCorrectionLevel.L :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectionLevel.M :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectionLevel.Q :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectionLevel.H :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default :
+        return undefined;
+      }
+    };
+
+    _this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+
+      var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+
+      if (typeof rsBlock == 'undefined') {
+        throw 'bad rs block @ typeNumber:' + typeNumber +
+            '/errorCorrectionLevel:' + errorCorrectionLevel;
+      }
+
+      var length = rsBlock.length / 3;
+
+      var list = [];
+
+      for (var i = 0; i < length; i += 1) {
+
+        var count = rsBlock[i * 3 + 0];
+        var totalCount = rsBlock[i * 3 + 1];
+        var dataCount = rsBlock[i * 3 + 2];
+
+        for (var j = 0; j < count; j += 1) {
+          list.push(qrRSBlock(totalCount, dataCount) );
+        }
+      }
+
+      return list;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrBitBuffer
+  //---------------------------------------------------------------------
+
+  var qrBitBuffer = function() {
+
+    var _buffer = [];
+    var _length = 0;
+
+    var _this = {};
+
+    _this.getBuffer = function() {
+      return _buffer;
+    };
+
+    _this.getAt = function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+    };
+
+    _this.put = function(num, length) {
+      for (var i = 0; i < length; i += 1) {
+        _this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+      }
+    };
+
+    _this.getLengthInBits = function() {
+      return _length;
+    };
+
+    _this.putBit = function(bit) {
+
+      var bufIndex = Math.floor(_length / 8);
+      if (_buffer.length <= bufIndex) {
+        _buffer.push(0);
+      }
+
+      if (bit) {
+        _buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+      }
+
+      _length += 1;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrNumber
+  //---------------------------------------------------------------------
+
+  var qrNumber = function(data) {
+
+    var _mode = QRMode.MODE_NUMBER;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _data;
+
+      var i = 0;
+
+      while (i + 2 < data.length) {
+        buffer.put(strToNum(data.substring(i, i + 3) ), 10);
+        i += 3;
+      }
+
+      if (i < data.length) {
+        if (data.length - i == 1) {
+          buffer.put(strToNum(data.substring(i, i + 1) ), 4);
+        } else if (data.length - i == 2) {
+          buffer.put(strToNum(data.substring(i, i + 2) ), 7);
+        }
+      }
+    };
+
+    var strToNum = function(s) {
+      var num = 0;
+      for (var i = 0; i < s.length; i += 1) {
+        num = num * 10 + chatToNum(s.charAt(i) );
+      }
+      return num;
+    };
+
+    var chatToNum = function(c) {
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      }
+      throw 'illegal char :' + c;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrAlphaNum
+  //---------------------------------------------------------------------
+
+  var qrAlphaNum = function(data) {
+
+    var _mode = QRMode.MODE_ALPHA_NUM;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var s = _data;
+
+      var i = 0;
+
+      while (i + 1 < s.length) {
+        buffer.put(
+          getCode(s.charAt(i) ) * 45 +
+          getCode(s.charAt(i + 1) ), 11);
+        i += 2;
+      }
+
+      if (i < s.length) {
+        buffer.put(getCode(s.charAt(i) ), 6);
+      }
+    };
+
+    var getCode = function(c) {
+
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      } else if ('A' <= c && c <= 'Z') {
+        return c.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+      } else {
+        switch (c) {
+        case ' ' : return 36;
+        case '$' : return 37;
+        case '%' : return 38;
+        case '*' : return 39;
+        case '+' : return 40;
+        case '-' : return 41;
+        case '.' : return 42;
+        case '/' : return 43;
+        case ':' : return 44;
+        default :
+          throw 'illegal char :' + c;
+        }
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qr8BitByte
+  //---------------------------------------------------------------------
+
+  var qr8BitByte = function(data) {
+
+    var _mode = QRMode.MODE_8BIT_BYTE;
+    var _data = data;
+    var _bytes = qrcode.stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _bytes.length;
+    };
+
+    _this.write = function(buffer) {
+      for (var i = 0; i < _bytes.length; i += 1) {
+        buffer.put(_bytes[i], 8);
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrKanji
+  //---------------------------------------------------------------------
+
+  var qrKanji = function(data) {
+
+    var _mode = QRMode.MODE_KANJI;
+    var _data = data;
+
+    var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
+    if (!stringToBytes) {
+      throw 'sjis not supported.';
+    }
+    !function(c, code) {
+      // self test for sjis support.
+      var test = stringToBytes(c);
+      if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
+        throw 'sjis not supported.';
+      }
+    }('\u53cb', 0x9746);
+
+    var _bytes = stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return ~~(_bytes.length / 2);
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _bytes;
+
+      var i = 0;
+
+      while (i + 1 < data.length) {
+
+        var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
+
+        if (0x8140 <= c && c <= 0x9FFC) {
+          c -= 0x8140;
+        } else if (0xE040 <= c && c <= 0xEBBF) {
+          c -= 0xC140;
+        } else {
+          throw 'illegal char at ' + (i + 1) + '/' + c;
+        }
+
+        c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
+
+        buffer.put(c, 13);
+
+        i += 2;
+      }
+
+      if (i < data.length) {
+        throw 'illegal char at ' + (i + 1);
+      }
+    };
+
+    return _this;
+  };
+
+  //=====================================================================
+  // GIF Support etc.
+  //
+
+  //---------------------------------------------------------------------
+  // byteArrayOutputStream
+  //---------------------------------------------------------------------
+
+  var byteArrayOutputStream = function() {
+
+    var _bytes = [];
+
+    var _this = {};
+
+    _this.writeByte = function(b) {
+      _bytes.push(b & 0xff);
+    };
+
+    _this.writeShort = function(i) {
+      _this.writeByte(i);
+      _this.writeByte(i >>> 8);
+    };
+
+    _this.writeBytes = function(b, off, len) {
+      off = off || 0;
+      len = len || b.length;
+      for (var i = 0; i < len; i += 1) {
+        _this.writeByte(b[i + off]);
+      }
+    };
+
+    _this.writeString = function(s) {
+      for (var i = 0; i < s.length; i += 1) {
+        _this.writeByte(s.charCodeAt(i) );
+      }
+    };
+
+    _this.toByteArray = function() {
+      return _bytes;
+    };
+
+    _this.toString = function() {
+      var s = '';
+      s += '[';
+      for (var i = 0; i < _bytes.length; i += 1) {
+        if (i > 0) {
+          s += ',';
+        }
+        s += _bytes[i];
+      }
+      s += ']';
+      return s;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64EncodeOutputStream
+  //---------------------------------------------------------------------
+
+  var base64EncodeOutputStream = function() {
+
+    var _buffer = 0;
+    var _buflen = 0;
+    var _length = 0;
+    var _base64 = '';
+
+    var _this = {};
+
+    var writeEncoded = function(b) {
+      _base64 += String.fromCharCode(encode(b & 0x3f) );
+    };
+
+    var encode = function(n) {
+      if (n < 0) {
+        // error.
+      } else if (n < 26) {
+        return 0x41 + n;
+      } else if (n < 52) {
+        return 0x61 + (n - 26);
+      } else if (n < 62) {
+        return 0x30 + (n - 52);
+      } else if (n == 62) {
+        return 0x2b;
+      } else if (n == 63) {
+        return 0x2f;
+      }
+      throw 'n:' + n;
+    };
+
+    _this.writeByte = function(n) {
+
+      _buffer = (_buffer << 8) | (n & 0xff);
+      _buflen += 8;
+      _length += 1;
+
+      while (_buflen >= 6) {
+        writeEncoded(_buffer >>> (_buflen - 6) );
+        _buflen -= 6;
+      }
+    };
+
+    _this.flush = function() {
+
+      if (_buflen > 0) {
+        writeEncoded(_buffer << (6 - _buflen) );
+        _buffer = 0;
+        _buflen = 0;
+      }
+
+      if (_length % 3 != 0) {
+        // padding
+        var padlen = 3 - _length % 3;
+        for (var i = 0; i < padlen; i += 1) {
+          _base64 += '=';
+        }
+      }
+    };
+
+    _this.toString = function() {
+      return _base64;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64DecodeInputStream
+  //---------------------------------------------------------------------
+
+  var base64DecodeInputStream = function(str) {
+
+    var _str = str;
+    var _pos = 0;
+    var _buffer = 0;
+    var _buflen = 0;
+
+    var _this = {};
+
+    _this.read = function() {
+
+      while (_buflen < 8) {
+
+        if (_pos >= _str.length) {
+          if (_buflen == 0) {
+            return -1;
+          }
+          throw 'unexpected end of file./' + _buflen;
+        }
+
+        var c = _str.charAt(_pos);
+        _pos += 1;
+
+        if (c == '=') {
+          _buflen = 0;
+          return -1;
+        } else if (c.match(/^\s$/) ) {
+          // ignore if whitespace.
+          continue;
+        }
+
+        _buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
+        _buflen += 6;
+      }
+
+      var n = (_buffer >>> (_buflen - 8) ) & 0xff;
+      _buflen -= 8;
+      return n;
+    };
+
+    var decode = function(c) {
+      if (0x41 <= c && c <= 0x5a) {
+        return c - 0x41;
+      } else if (0x61 <= c && c <= 0x7a) {
+        return c - 0x61 + 26;
+      } else if (0x30 <= c && c <= 0x39) {
+        return c - 0x30 + 52;
+      } else if (c == 0x2b) {
+        return 62;
+      } else if (c == 0x2f) {
+        return 63;
+      } else {
+        throw 'c:' + c;
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // gifImage (B/W)
+  //---------------------------------------------------------------------
+
+  var gifImage = function(width, height) {
+
+    var _width = width;
+    var _height = height;
+    var _data = new Array(width * height);
+
+    var _this = {};
+
+    _this.setPixel = function(x, y, pixel) {
+      _data[y * _width + x] = pixel;
+    };
+
+    _this.write = function(out) {
+
+      //---------------------------------
+      // GIF Signature
+
+      out.writeString('GIF87a');
+
+      //---------------------------------
+      // Screen Descriptor
+
+      out.writeShort(_width);
+      out.writeShort(_height);
+
+      out.writeByte(0x80); // 2bit
+      out.writeByte(0);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Global Color Map
+
+      // black
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+
+      // white
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+
+      //---------------------------------
+      // Image Descriptor
+
+      out.writeString(',');
+      out.writeShort(0);
+      out.writeShort(0);
+      out.writeShort(_width);
+      out.writeShort(_height);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Local Color Map
+
+      //---------------------------------
+      // Raster Data
+
+      var lzwMinCodeSize = 2;
+      var raster = getLZWRaster(lzwMinCodeSize);
+
+      out.writeByte(lzwMinCodeSize);
+
+      var offset = 0;
+
+      while (raster.length - offset > 255) {
+        out.writeByte(255);
+        out.writeBytes(raster, offset, 255);
+        offset += 255;
+      }
+
+      out.writeByte(raster.length - offset);
+      out.writeBytes(raster, offset, raster.length - offset);
+      out.writeByte(0x00);
+
+      //---------------------------------
+      // GIF Terminator
+      out.writeString(';');
+    };
+
+    var bitOutputStream = function(out) {
+
+      var _out = out;
+      var _bitLength = 0;
+      var _bitBuffer = 0;
+
+      var _this = {};
+
+      _this.write = function(data, length) {
+
+        if ( (data >>> length) != 0) {
+          throw 'length over';
+        }
+
+        while (_bitLength + length >= 8) {
+          _out.writeByte(0xff & ( (data << _bitLength) | _bitBuffer) );
+          length -= (8 - _bitLength);
+          data >>>= (8 - _bitLength);
+          _bitBuffer = 0;
+          _bitLength = 0;
+        }
+
+        _bitBuffer = (data << _bitLength) | _bitBuffer;
+        _bitLength = _bitLength + length;
+      };
+
+      _this.flush = function() {
+        if (_bitLength > 0) {
+          _out.writeByte(_bitBuffer);
+        }
+      };
+
+      return _this;
+    };
+
+    var getLZWRaster = function(lzwMinCodeSize) {
+
+      var clearCode = 1 << lzwMinCodeSize;
+      var endCode = (1 << lzwMinCodeSize) + 1;
+      var bitLength = lzwMinCodeSize + 1;
+
+      // Setup LZWTable
+      var table = lzwTable();
+
+      for (var i = 0; i < clearCode; i += 1) {
+        table.add(String.fromCharCode(i) );
+      }
+      table.add(String.fromCharCode(clearCode) );
+      table.add(String.fromCharCode(endCode) );
+
+      var byteOut = byteArrayOutputStream();
+      var bitOut = bitOutputStream(byteOut);
+
+      // clear code
+      bitOut.write(clearCode, bitLength);
+
+      var dataIndex = 0;
+
+      var s = String.fromCharCode(_data[dataIndex]);
+      dataIndex += 1;
+
+      while (dataIndex < _data.length) {
+
+        var c = String.fromCharCode(_data[dataIndex]);
+        dataIndex += 1;
+
+        if (table.contains(s + c) ) {
+
+          s = s + c;
+
+        } else {
+
+          bitOut.write(table.indexOf(s), bitLength);
+
+          if (table.size() < 0xfff) {
+
+            if (table.size() == (1 << bitLength) ) {
+              bitLength += 1;
+            }
+
+            table.add(s + c);
+          }
+
+          s = c;
+        }
+      }
+
+      bitOut.write(table.indexOf(s), bitLength);
+
+      // end code
+      bitOut.write(endCode, bitLength);
+
+      bitOut.flush();
+
+      return byteOut.toByteArray();
+    };
+
+    var lzwTable = function() {
+
+      var _map = {};
+      var _size = 0;
+
+      var _this = {};
+
+      _this.add = function(key) {
+        if (_this.contains(key) ) {
+          throw 'dup key:' + key;
+        }
+        _map[key] = _size;
+        _size += 1;
+      };
+
+      _this.size = function() {
+        return _size;
+      };
+
+      _this.indexOf = function(key) {
+        return _map[key];
+      };
+
+      _this.contains = function(key) {
+        return typeof _map[key] != 'undefined';
+      };
+
+      return _this;
+    };
+
+    return _this;
+  };
+
+  var createDataURL = function(width, height, getPixel) {
+    var gif = gifImage(width, height);
+    for (var y = 0; y < height; y += 1) {
+      for (var x = 0; x < width; x += 1) {
+        gif.setPixel(x, y, getPixel(x, y) );
+      }
+    }
+
+    var b = byteArrayOutputStream();
+    gif.write(b);
+
+    var base64 = base64EncodeOutputStream();
+    var bytes = b.toByteArray();
+    for (var i = 0; i < bytes.length; i += 1) {
+      base64.writeByte(bytes[i]);
+    }
+    base64.flush();
+
+    return 'data:image/gif;base64,' + base64;
+  };
+
+  //---------------------------------------------------------------------
+  // returns qrcode function.
+
+  return qrcode;
+}();
+
+// multibyte support
+!function() {
+
+  qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
+    // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
+    function toUTF8Array(str) {
+      var utf8 = [];
+      for (var i=0; i < str.length; i++) {
+        var charcode = str.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+          utf8.push(0xc0 | (charcode >> 6),
+              0x80 | (charcode & 0x3f));
+        }
+        else if (charcode < 0xd800 || charcode >= 0xe000) {
+          utf8.push(0xe0 | (charcode >> 12),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+        // surrogate pair
+        else {
+          i++;
+          // UTF-16 encodes 0x10000-0x10FFFF by
+          // subtracting 0x10000 and splitting the
+          // 20 bits of 0x0-0xFFFFF into two halves
+          charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+            | (str.charCodeAt(i) & 0x3ff));
+          utf8.push(0xf0 | (charcode >>18),
+              0x80 | ((charcode>>12) & 0x3f),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+      }
+      return utf8;
+    }
+    return toUTF8Array(s);
+  };
+
+}();
+
+(function (factory) {
+  if (typeof define === 'function' && define.amd) {
+      define([], factory);
+  } else if (typeof exports === 'object') {
+      module.exports = factory();
+  }
+}(function () {
+    return qrcode;
+}));
+
+    </script>
+    <script>
 const STORAGE_KEY = "sis101-almacen-v1";
 const LOW_STOCK_LIMIT = 5;
 const APPS_SCRIPT_MODE = typeof google !== "undefined" && Boolean(google.script?.run);
@@ -764,19 +3121,148 @@ const sectionNames = {
   productos: "Productos",
   combos: "Combos",
   ventas: "Ventas",
+  historial: "Historial de ventas",
   categorias: "Categorías",
+  usuarios: "Cuentas",
 };
 const currency = new Intl.NumberFormat("es-BO", { style: "currency", currency: "BOB", minimumFractionDigits: 2 });
 let almacen = new Almacen();
 let salesHistory = [];
+let paymentQrUrl = "";
+let paymentQrImageData = "";
+let paymentQrError = "";
 let currentView = "dashboard";
 let toastTimer;
 let sheetVersion = 0;
+let sessionToken = "";
+let currentUser = null;
+let userAccounts = [];
+
+function isAdministrator() {
+  return !APPS_SCRIPT_MODE || currentUser?.rol === "ADMINISTRADOR";
+}
+
+function showLogin(message = "") {
+  sessionToken = "";
+  currentUser = null;
+  document.getElementById("app-shell").hidden = true;
+  document.getElementById("login-screen").hidden = false;
+  document.getElementById("modal-backdrop").hidden = true;
+  document.getElementById("login-password").value = "";
+  const error = document.getElementById("login-error");
+  error.textContent = message;
+  error.hidden = !message;
+  document.getElementById("login-username").focus();
+}
+
+function handleSessionError(message) {
+  if (!APPS_SCRIPT_MODE) return false;
+  const text = String(message || "");
+  if (!/sesión|inicia sesión|cuenta está desactivada/i.test(text)) return false;
+  showLogin(text);
+  return true;
+}
+
+function showAuthenticatedApp(user) {
+  currentUser = user;
+  document.getElementById("login-screen").hidden = true;
+  document.getElementById("app-shell").hidden = false;
+  document.getElementById("user-name").textContent = user.usuario;
+  document.getElementById("user-role").textContent = user.rol === "ADMINISTRADOR" ? "Administrador" : "Empleado";
+  document.getElementById("user-avatar").textContent = initials(user.usuario);
+  document.querySelectorAll(".admin-only").forEach((element) => {
+    element.hidden = !isAdministrator() || (!APPS_SCRIPT_MODE && element.dataset.view === "usuarios");
+  });
+  document.querySelectorAll(".employee-only").forEach((element) => {
+    element.hidden = APPS_SCRIPT_MODE && isAdministrator();
+  });
+  currentView = isAdministrator() ? "dashboard" : "ventas";
+}
+
+function login(username, password) {
+  const submit = document.querySelector("#login-form button[type=submit]");
+  const error = document.getElementById("login-error");
+  submit.disabled = true;
+  error.hidden = true;
+  google.script.run
+    .withSuccessHandler((result) => {
+      submit.disabled = false;
+      if (!result.ok) {
+        error.textContent = result.mensaje || "No se pudo iniciar sesión.";
+        error.hidden = false;
+        return;
+      }
+      sessionToken = result.token;
+      showAuthenticatedApp({ usuario: result.usuario, rol: result.rol });
+      render();
+      loadData();
+    })
+    .withFailureHandler((failure) => {
+      submit.disabled = false;
+      error.textContent = failure.message || "No se pudo iniciar sesión.";
+      error.hidden = false;
+    })
+    .apiIniciarSesion(username, password);
+}
+
+function logout() {
+  const token = sessionToken;
+  sessionToken = "";
+  currentUser = null;
+  if (APPS_SCRIPT_MODE && token) google.script.run.apiCerrarSesion(token);
+  showLogin();
+}
 
 function escapeHTML(value) {
   return String(value ?? "").replace(/[&<>"']/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   })[character]);
+}
+
+function normalizeImageUrl(value) {
+  const imageUrl = String(value ?? "").trim();
+  if (!imageUrl) return "";
+  try {
+    const url = new URL(imageUrl);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function configurePaymentQr(value) {
+  paymentQrUrl = normalizeImageUrl(value);
+  paymentQrImageData = "";
+  paymentQrError = "";
+  if (!paymentQrUrl) return;
+  if (typeof qrcode !== "function") {
+    paymentQrError = "No se cargó el generador de códigos QR.";
+    return;
+  }
+  try {
+    const qr = qrcode(0, "M");
+    qr.addData(paymentQrUrl, "Byte");
+    qr.make();
+    paymentQrImageData = qr.createDataURL(5, 4);
+  } catch {
+    paymentQrError = "No se pudo generar el QR. Revisa que el enlace no sea demasiado largo.";
+  }
+}
+
+function productAvatar(product) {
+  const fallback = escapeHTML(initials(product.nombre));
+  const imageUrl = normalizeImageUrl(product.imagen);
+  if (!imageUrl) return `<span class="item-avatar">${fallback}</span>`;
+  return `<span class="item-avatar product-avatar"><img class="product-thumbnail" src="${escapeHTML(imageUrl)}" data-fallback="${fallback}" alt="" loading="lazy"></span>`;
+}
+
+function bindProductImageFallbacks(root) {
+  root.querySelectorAll(".product-thumbnail").forEach((image) => {
+    image.addEventListener("error", () => {
+      image.parentElement.textContent = image.dataset.fallback || "";
+      image.parentElement.classList.remove("product-avatar");
+    }, { once: true });
+  });
 }
 
 function loadData() {
@@ -790,9 +3276,10 @@ function loadData() {
       })
       .withFailureHandler((error) => {
         document.getElementById("storage-label").textContent = "Sin conexión con Google Sheets";
+        if (handleSessionError(error.message)) return;
         showToast(`No se pudo cargar la hoja: ${error.message}`, true);
       })
-      .apiObtenerDatosWeb();
+      .apiObtenerDatosWeb(sessionToken);
     return;
   }
   try {
@@ -805,6 +3292,7 @@ function loadData() {
       const product = new Producto(data.nombre, data.categoria, Number(data.precio), Number(data.stock), Number(data.porciones), Number(data.precioVaso));
       product.id = data.id;
       product.vasosSueltos = Number(data.vasosSueltos || 0);
+      product.imagen = String(data.imagen || "");
       return product;
     });
     almacen.ultimoCombo = Number(saved.ultimoCombo || 0);
@@ -842,6 +3330,10 @@ function saveData() {
     ventas: salesHistory,
   };
   if (APPS_SCRIPT_MODE) {
+    if (!isAdministrator()) {
+      showToast("Tu cuenta solo puede registrar ventas.", true);
+      return;
+    }
     const inventory = {
       categorias: data.categorias,
       productos: data.productos,
@@ -852,6 +3344,7 @@ function saveData() {
       .withSuccessHandler((result) => {
         if (!result.ok) {
           if (result.datos) applySheetData(result.datos);
+          if (handleSessionError(result.mensaje)) return;
           showToast(result.mensaje || "No se pudo guardar en Google Sheets.", true);
           render();
           return;
@@ -860,8 +3353,11 @@ function saveData() {
         document.getElementById("storage-label").textContent = "Conectado a Google Sheets";
         render();
       })
-      .withFailureHandler((error) => showToast(`Error al guardar en Google Sheets: ${error.message}`, true))
-      .apiGuardarInventarioWeb(inventory, sheetVersion);
+      .withFailureHandler((error) => {
+        if (handleSessionError(error.message)) return;
+        showToast(`Error al guardar en Google Sheets: ${error.message}`, true);
+      })
+      .apiGuardarInventarioWeb(sessionToken, inventory, sheetVersion);
     updateCounts();
     return;
   }
@@ -876,6 +3372,7 @@ function applySheetData(data) {
     const product = new Producto(item.nombre, item.categoria, Number(item.precio), Number(item.stock), Number(item.porciones), Number(item.precioVaso));
     product.id = item.id;
     product.vasosSueltos = Number(item.vasosSueltos) || 0;
+    product.imagen = String(item.imagen || "");
     return product;
   });
   almacen.combos = (data.combos || []).map((item) => {
@@ -890,6 +3387,7 @@ function applySheetData(data) {
   });
   almacen.ultimoCombo = Number(data.ultimoCombo) || 0;
   sheetVersion = String(data.version || "");
+  configurePaymentQr(data.qrPagoUrl || data.enlacePagoUrl || "");
   salesHistory = data.ventas || [];
 }
 
@@ -916,6 +3414,15 @@ function initials(name) {
 }
 
 function render() {
+  if (APPS_SCRIPT_MODE && !currentUser) return;
+  if (APPS_SCRIPT_MODE && isAdministrator() && currentView === "ventas") currentView = "dashboard";
+  if (!isAdministrator() && !["ventas", "productos", "combos", "historial"].includes(currentView)) currentView = "ventas";
+  document.querySelectorAll(".admin-only").forEach((element) => {
+    element.hidden = !isAdministrator() || (!APPS_SCRIPT_MODE && element.dataset.view === "usuarios");
+  });
+  document.querySelectorAll(".employee-only").forEach((element) => {
+    element.hidden = APPS_SCRIPT_MODE && isAdministrator();
+  });
   document.getElementById("current-section").textContent = sectionNames[currentView];
   document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === currentView));
   const views = {
@@ -923,10 +3430,14 @@ function render() {
     productos: renderProducts,
     combos: renderCombos,
     ventas: renderSales,
+    historial: renderSalesHistory,
     categorias: renderCategories,
+    usuarios: renderUsers,
   };
   document.getElementById("page-content").innerHTML = views[currentView]();
+  bindProductImageFallbacks(document.getElementById("page-content"));
   if (currentView === "ventas") bindSales();
+  if (currentView === "usuarios") loadUsers();
   updateCounts();
 }
 
@@ -939,7 +3450,7 @@ function productRow(product, actions = false) {
   const stockLabel = product.stock <= 0 ? '<span class="pill danger">Agotado</span>'
     : product.stock <= LOW_STOCK_LIMIT ? '<span class="pill warning">Bajo</span>' : '<span class="pill">Disponible</span>';
   return `<tr>
-    <td><div class="item-cell"><span class="item-avatar">${escapeHTML(initials(product.nombre))}</span><span class="item-name"><strong>${escapeHTML(product.nombre)}</strong><small>${escapeHTML(product.categoria)}</small></span></div></td>
+    <td><div class="item-cell">${productAvatar(product)}<span class="item-name"><strong>${escapeHTML(product.nombre)}</strong><small>${escapeHTML(product.categoria)}</small></span></div></td>
     <td class="mono">${escapeHTML(product.id)}</td>
     <td><span class="stock-value ${stockClass}">${product.stock}</span> <span class="mono">unid.</span></td>
     <td>${product.porciones > 0 ? `<span class="mono">${product.vasosDisponibles()} vasos</span>` : '<span class="mono">—</span>'}</td>
@@ -961,7 +3472,7 @@ function renderDashboard() {
     return `<div class="category-row"><div class="category-label"><span class="category-letter">${escapeHTML(category.letra)}</span>${escapeHTML(category.nombre)}</div><span class="category-count">${count} ${count === 1 ? "producto" : "productos"}</span></div>`;
   }).join("");
   const inventoryRows = almacen.productos.slice(-6).reverse().map((product) => `<tr>
-    <td><div class="item-cell"><span class="item-avatar">${escapeHTML(initials(product.nombre))}</span><span class="item-name"><strong>${escapeHTML(product.nombre)}</strong><small>${escapeHTML(product.id)}</small></span></div></td>
+    <td><div class="item-cell">${productAvatar(product)}<span class="item-name"><strong>${escapeHTML(product.nombre)}</strong><small>${escapeHTML(product.id)}</small></span></div></td>
     <td><span class="category-tag">${escapeHTML(product.categoria)}</span></td>
     <td><span class="stock-value">${product.stock}</span> <span class="mono">unid.</span></td>
     <td class="sale-price">${money(product.precio)}</td>
@@ -983,46 +3494,127 @@ function renderDashboard() {
 }
 
 function renderProducts() {
-  const rows = almacen.productos.map((product) => productRow(product, true)).join("");
+  const canEdit = isAdministrator();
+  const rows = almacen.productos.map((product) => productRow(product, canEdit)).join("");
   const options = ['<option value="">Todas las categorías</option>', ...almacen.categorias.map((category) => `<option value="${escapeHTML(category.nombre)}">${escapeHTML(category.nombre)}</option>`)].join("");
-  return `${pageHeading("INVENTARIO", "Productos", "Administra existencias, precios y productos por vaso.", '<button class="button button-primary" data-action="add-product"><span class="button-plus">+</span> Nuevo producto</button>')}
-    <div class="toolbar"><label class="search-box"><span>⌕</span><input class="field" id="product-search" type="search" placeholder="Buscar por nombre o ID..."></label><select class="select-field" id="category-filter" aria-label="Filtrar por categoría">${options}</select><button class="button button-secondary button-small" data-action="export-csv">↓ Exportar CSV</button></div>
-    <section class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Producto</th><th>ID</th><th>Stock</th><th>Vasos disponibles</th><th>Precio unidad</th><th>Porciones/unidad</th><th>Precio vaso</th><th>Estado</th><th></th></tr></thead><tbody id="product-rows">${rows || emptyTable("Tu inventario está vacío", "Agrega productos para comenzar a controlar las existencias.", '<button class="button button-primary button-small" data-action="add-product">Agregar producto</button>', 9)}</tbody></table></div><footer class="table-footer"><span id="product-result-count">${almacen.productos.length} productos</span><span>Stock bajo: ${almacen.stockBajo(LOW_STOCK_LIMIT).length}</span></footer></section>`;
+  const emptyAction = canEdit ? '<button class="button button-primary button-small" data-action="add-product">Agregar producto</button>' : "";
+  const actionHeader = canEdit ? "<th></th>" : "";
+  const description = canEdit
+    ? "Administra existencias, precios y productos por vaso."
+    : "Consulta productos, precios y existencias disponibles para la venta.";
+  const exportButton = canEdit ? '<button class="button button-secondary button-small" data-action="export-csv">↓ Exportar CSV</button>' : "";
+  return `${pageHeading("INVENTARIO", "Productos", description, canEdit ? '<button class="button button-primary" data-action="add-product"><span class="button-plus">+</span> Nuevo producto</button>' : "")}
+    <div class="toolbar"><label class="search-box"><span>⌕</span><input class="field" id="product-search" type="search" placeholder="Buscar por nombre o ID..."></label><select class="select-field" id="category-filter" aria-label="Filtrar por categoría">${options}</select>${exportButton}</div>
+    <section class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Producto</th><th>ID</th><th>Stock</th><th>Vasos disponibles</th><th>Precio unidad</th><th>Porciones/unidad</th><th>Precio vaso</th><th>Estado</th>${actionHeader}</tr></thead><tbody id="product-rows">${rows || emptyTable(canEdit ? "Tu inventario está vacío" : "No hay productos registrados", canEdit ? "Agrega productos para comenzar a controlar las existencias." : "Los productos aparecerán aquí cuando el administrador los registre.", emptyAction, canEdit ? 9 : 8)}</tbody></table></div><footer class="table-footer"><span id="product-result-count">${almacen.productos.length} productos</span><span>Stock bajo: ${almacen.stockBajo(LOW_STOCK_LIMIT).length}</span></footer></section>`;
 }
 
 function renderCombos() {
+  const canEdit = isAdministrator();
   const rows = almacen.combos.map((combo) => {
     const broken = combo.componentesRotos?.length > 0;
     const available = broken ? 0 : combo.disponibles();
     const parts = combo.componentes.map((part) => `${part.cantidad} × ${escapeHTML(part.producto.nombre)}`).join(" · ");
     const missing = broken ? ` · Faltan: ${combo.componentesRotos.map(escapeHTML).join(", ")}` : "";
-    return `<tr><td><div class="item-cell"><span class="item-avatar combo-avatar">${escapeHTML(initials(combo.nombre))}</span><span class="item-name"><strong>${escapeHTML(combo.nombre)}</strong><small>${parts}${escapeHTML(missing)}</small></span></div></td><td class="mono">${escapeHTML(combo.id)}</td><td>${money(combo.precio)}</td><td><span class="stock-value ${available === 0 ? "stock-low" : ""}">${available}</span></td><td>${broken ? '<span class="pill danger">Componentes faltantes</span>' : available > 0 ? '<span class="pill">Disponible</span>' : '<span class="pill danger">Sin stock</span>'}</td><td><div class="row-actions"><button class="row-action" data-action="edit-combo" data-id="${escapeHTML(combo.id)}" title="Editar combo" aria-label="Editar ${escapeHTML(combo.nombre)}">✎</button><button class="row-action delete" data-action="delete-combo" data-id="${escapeHTML(combo.id)}" title="Eliminar combo" aria-label="Eliminar ${escapeHTML(combo.nombre)}">×</button></div></td></tr>`;
+    const actions = canEdit ? `<td><div class="row-actions"><button class="row-action" data-action="edit-combo" data-id="${escapeHTML(combo.id)}" title="Editar combo" aria-label="Editar ${escapeHTML(combo.nombre)}">✎</button><button class="row-action delete" data-action="delete-combo" data-id="${escapeHTML(combo.id)}" title="Eliminar combo" aria-label="Eliminar ${escapeHTML(combo.nombre)}">×</button></div></td>` : "";
+    return `<tr><td><div class="item-cell"><span class="item-avatar combo-avatar">${escapeHTML(initials(combo.nombre))}</span><span class="item-name"><strong>${escapeHTML(combo.nombre)}</strong><small>${parts}${escapeHTML(missing)}</small></span></div></td><td class="mono">${escapeHTML(combo.id)}</td><td>${money(combo.precio)}</td><td><span class="stock-value ${available === 0 ? "stock-low" : ""}">${available}</span></td><td>${broken ? '<span class="pill danger">Componentes faltantes</span>' : available > 0 ? '<span class="pill">Disponible</span>' : '<span class="pill danger">Sin stock</span>'}</td>${actions}</tr>`;
   }).join("");
-  return `${pageHeading("CATÁLOGO", "Combos", "Arma paquetes con productos del inventario y controla su disponibilidad.", '<button class="button button-primary" data-action="add-combo"><span class="button-plus">+</span> Nuevo combo</button>')}
-    <section class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Combo y componentes</th><th>ID</th><th>Precio</th><th>Disponibles</th><th>Estado</th><th></th></tr></thead><tbody>${rows || emptyTable("Aún no hay combos", "Crea un combo a partir de productos registrados.", '<button class="button button-primary button-small" data-action="add-combo">Crear primer combo</button>', 6)}</tbody></table></div><footer class="table-footer"><span>${almacen.combos.length} combos registrados</span><span>La disponibilidad se calcula con el stock actual</span></footer></section>`;
+  const actionHeader = canEdit ? "<th></th>" : "";
+  const emptyAction = canEdit ? '<button class="button button-primary button-small" data-action="add-combo">Crear primer combo</button>' : "";
+  const description = canEdit
+    ? "Arma paquetes con productos del inventario y controla su disponibilidad."
+    : "Consulta los combos, sus componentes, precios y disponibilidad.";
+  return `${pageHeading("CATÁLOGO", "Combos", description, canEdit ? '<button class="button button-primary" data-action="add-combo"><span class="button-plus">+</span> Nuevo combo</button>' : "")}
+    <section class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Combo y componentes</th><th>ID</th><th>Precio</th><th>Disponibles</th><th>Estado</th>${actionHeader}</tr></thead><tbody>${rows || emptyTable("Aún no hay combos", canEdit ? "Crea un combo a partir de productos registrados." : "Los combos aparecerán aquí cuando el administrador los registre.", emptyAction, canEdit ? 6 : 5)}</tbody></table></div><footer class="table-footer"><span>${almacen.combos.length} combos registrados</span><span>La disponibilidad se calcula con el stock actual</span></footer></section>`;
 }
 
 function renderSales() {
+  const productOptions = almacen.productos.filter((product) => product.stock > 0).map((product) => `<option value="${escapeHTML(product.id)}">${escapeHTML(product.id)} · ${escapeHTML(product.nombre)} (${product.stock} disponibles)</option>`).join("");
   const drinkOptions = almacen.productos.filter((product) => product.porciones > 0).map((product) => `<option value="${escapeHTML(product.id)}">${escapeHTML(product.id)} · ${escapeHTML(product.nombre)} (${product.vasosDisponibles()} vasos)</option>`).join("");
   const cupOptions = almacen.productos.filter((product) => product.nombre.toLowerCase().includes("vaso")).map((product) => `<option value="${escapeHTML(product.id)}">${escapeHTML(product.id)} · ${escapeHTML(product.nombre)} (${product.stock})</option>`).join("");
   const comboOptions = almacen.combos.filter((combo) => !combo.componentesRotos?.length).map((combo) => `<option value="${escapeHTML(combo.id)}">${escapeHTML(combo.id)} · ${escapeHTML(combo.nombre)} (${combo.disponibles()} disponibles)</option>`).join("");
-  const historyRows = salesHistory.map((sale) => `<tr><td class="mono">${escapeHTML(sale.fecha)}</td><td>${sale.tipo === "Vaso" || sale.tipo === "vaso" ? "Venta por vaso" : "Venta de combo"}</td><td>${escapeHTML(sale.detalle)}</td><td>${sale.cantidad}</td><td class="sale-price">${money(sale.total)}</td></tr>`).join("");
-  const history = historyRows || emptyTable("Sin ventas registradas", "Las ventas guardadas en la hoja Ventas aparecerán aquí.", "", 5);
   return `${pageHeading("PUNTO DE VENTA", "Ventas", "Registra ventas y descuenta existencias automáticamente.")}
     <div class="sales-grid">
+      <form class="panel sale-panel" id="product-sale-form"><h2>Venta de producto</h2><p>Vende unidades completas y descuenta el stock.</p>
+        <div class="form-field"><label for="sale-product">Producto</label><select class="select-field" id="sale-product" required>${productOptions || '<option value="">No hay productos con stock</option>'}</select></div>
+        <div class="form-field"><label for="sale-product-quantity">Cantidad</label><input class="field" id="sale-product-quantity" type="number" min="1" step="1" value="1" required></div>
+        <p class="form-hint" id="product-sale-hint">Selecciona un producto para ver su precio y stock.</p><div class="sale-total"><span>Total estimado</span><strong id="product-sale-total">${money(0)}</strong></div>${paymentMethodFields("product")}<button class="button button-primary" type="submit">Registrar venta</button>
+      </form>
       <form class="panel sale-panel" id="glass-sale-form"><h2>Venta por vaso</h2><p>Descuenta las porciones y los vasos descartables.</p>
         <div class="form-field"><label for="sale-drink">Producto por vaso</label><select class="select-field" id="sale-drink" required>${drinkOptions || '<option value="">No hay productos configurados por vaso</option>'}</select></div>
         <div class="form-field"><label for="sale-cup">Vaso descartable</label><select class="select-field" id="sale-cup" required>${cupOptions || '<option value="">No se encontró un producto de vasos</option>'}</select></div>
         <div class="form-field"><label for="sale-glass-quantity">Cantidad de vasos</label><input class="field" id="sale-glass-quantity" type="number" min="1" step="1" value="1" required></div>
-        <p class="form-hint" id="glass-sale-hint">Selecciona un producto para ver su precio y disponibilidad.</p><div class="sale-total"><span>Total estimado</span><strong id="glass-sale-total">${money(0)}</strong></div><button class="button button-primary" type="submit">Registrar venta</button>
+        <p class="form-hint" id="glass-sale-hint">Selecciona un producto para ver su precio y disponibilidad.</p><div class="sale-total"><span>Total estimado</span><strong id="glass-sale-total">${money(0)}</strong></div>${paymentMethodFields("glass")}<button class="button button-primary" type="submit">Registrar venta</button>
       </form>
       <form class="panel sale-panel" id="combo-sale-form"><h2>Venta de combo</h2><p>El stock de cada componente se actualizará al confirmar.</p>
         <div class="form-field"><label for="sale-combo">Combo</label><select class="select-field" id="sale-combo" required>${comboOptions || '<option value="">No hay combos registrados</option>'}</select></div>
         <div class="form-field"><label for="sale-combo-quantity">Cantidad</label><input class="field" id="sale-combo-quantity" type="number" min="1" step="1" value="1" required></div>
-        <p class="form-hint" id="combo-sale-hint">Selecciona un combo para ver disponibilidad.</p><div class="sale-total"><span>Total estimado</span><strong id="combo-sale-total">${money(0)}</strong></div><button class="button button-primary" type="submit">Registrar venta</button>
+        <p class="form-hint" id="combo-sale-hint">Selecciona un combo para ver disponibilidad.</p><div class="sale-total"><span>Total estimado</span><strong id="combo-sale-total">${money(0)}</strong></div>${paymentMethodFields("combo")}<button class="button button-primary" type="submit">Registrar venta</button>
       </form>
-    </div>
-    <section class="panel history-panel"><header class="panel-header"><div><h2>Historial de ventas</h2><p>Operaciones almacenadas en la hoja Ventas</p></div><span class="pill">${salesHistory.length} ventas</span></header><div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th>Cantidad</th><th>Total</th></tr></thead><tbody>${history}</tbody></table></div></section>`;
+    </div>`;
+}
+
+function paymentMethodFields(suffix) {
+  const qrContent = paymentQrImageData
+    ? `<img class="payment-qr-image" data-qr-image src="${escapeHTML(paymentQrImageData)}" alt="Código QR de pago"><p class="form-hint">Escanea el QR para abrir el enlace configurado. Verifica que recibiste el pago antes de confirmar la venta.</p><label class="payment-confirmation"><input type="checkbox" data-qr-confirmation> Confirmo que verifiqué la recepción del pago.</label>`
+    : paymentQrError
+      ? `<p class="form-error">${escapeHTML(paymentQrError)}</p>`
+      : '<p class="form-hint payment-qr-missing">El administrador aún no configuró la URL del QR. Podrás usar este método cuando la agregue en Cuentas.</p>';
+  return `<div class="form-field"><label for="sale-payment-${suffix}">Método de pago</label><select class="select-field" id="sale-payment-${suffix}" data-payment-method><option value="Efectivo">Efectivo</option><option value="QR">QR</option></select></div><div class="payment-qr" data-payment-qr hidden>${qrContent}</div>`;
+}
+
+function bindPaymentFields(form) {
+  const methodSelect = form.querySelector("[data-payment-method]");
+  const qrPanel = form.querySelector("[data-payment-qr]");
+  if (!methodSelect || !qrPanel) return;
+  const confirmation = form.querySelector("[data-qr-confirmation]");
+  const updateVisibility = () => {
+    qrPanel.hidden = methodSelect.value !== "QR";
+    if (methodSelect.value !== "QR" && confirmation) confirmation.checked = false;
+  };
+  const clearConfirmation = () => {
+    if (confirmation) confirmation.checked = false;
+  };
+  methodSelect.addEventListener("change", updateVisibility);
+  form.querySelectorAll('input[type="number"]').forEach((input) => input.addEventListener("input", clearConfirmation));
+  form.querySelectorAll("select:not([data-payment-method])").forEach((select) => select.addEventListener("change", clearConfirmation));
+  updateVisibility();
+}
+
+function getPaymentDetails(form) {
+  const method = form.querySelector("[data-payment-method]").value;
+  if (method === "QR") {
+    if (!paymentQrUrl) {
+      showToast("El administrador todavía no configuró la URL del QR de pago.", true);
+      return null;
+    }
+    if (!paymentQrImageData) {
+      showToast(paymentQrError || "No se pudo generar el QR.", true);
+      return null;
+    }
+    const qrImage = form.querySelector("[data-qr-image]");
+    if (!qrImage?.complete || qrImage.naturalWidth === 0) {
+      showToast("No se pudo cargar el QR generado. Pide al administrador que revise la URL.", true);
+      return null;
+    }
+    if (!form.querySelector("[data-qr-confirmation]").checked) {
+      showToast("Confirma que verificaste la recepción del pago.", true);
+      return null;
+    }
+  }
+  return { metodoPago: method, qrConfirmado: method === "QR", qrPagoUrl: method === "QR" ? paymentQrUrl : "" };
+}
+
+function renderSalesHistory() {
+  const showSeller = APPS_SCRIPT_MODE && isAdministrator();
+  const historyRows = salesHistory.map((sale) => {
+    const type = sale.tipo === "Vaso" || sale.tipo === "vaso" ? "Venta por vaso"
+      : sale.tipo === "Producto" ? "Venta de producto" : "Venta de combo";
+    return `<tr><td class="mono">${escapeHTML(sale.fecha)}</td><td>${type}</td><td>${escapeHTML(sale.detalle)}</td><td>${Number(sale.cantidad) || 0}</td><td>${escapeHTML(sale.metodoPago || "—")}</td><td class="sale-price">${money(sale.total)}</td>${showSeller ? `<td>${escapeHTML(sale.usuario || "Sheets")}</td>` : ""}</tr>`;
+  }).join("");
+  const history = historyRows || emptyTable("Sin ventas registradas", "Las ventas guardadas en la hoja Ventas aparecerán aquí.", "", showSeller ? 7 : 6);
+  const title = showSeller ? "Historial de ventas" : "Tus ventas";
+  return `${pageHeading("OPERACIONES", title, "Consulta las ventas registradas en la aplicación.")}
+    <section class="panel history-panel"><header class="panel-header"><div><h2>${title}</h2><p>Operaciones almacenadas en la hoja Ventas</p></div><span class="pill">${salesHistory.length} ventas</span></header><div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th>Cantidad</th><th>Método de pago</th><th>Total</th>${showSeller ? "<th>Usuario</th>" : ""}</tr></thead><tbody>${history}</tbody></table></div></section>`;
 }
 
 function renderCategories() {
@@ -1032,6 +3624,198 @@ function renderCategories() {
   }).join("");
   return `${pageHeading("ORGANIZACIÓN", "Categorías", "Agrupa productos y conserva sus prefijos de identificación.", '<button class="button button-primary" data-action="add-category"><span class="button-plus">+</span> Nueva categoría</button>')}
     <div class="category-cards">${cards}</div>`;
+}
+
+function renderUsers() {
+  if (!APPS_SCRIPT_MODE) return `${pageHeading("ADMINISTRACIÓN", "Cuentas", "La administración de cuentas solo está disponible en la aplicación conectada a Google Sheets.")}`;
+  return `${pageHeading("ADMINISTRACIÓN", "Cuentas", "Crea y administra las cuentas de los tres empleados.")}
+    <section class="panel account-create-panel payment-settings-panel"><header class="panel-header"><div><h2>Pagos con QR</h2><p>Configura el enlace que se codificará en el QR.</p></div></header>
+      <form id="payment-qr-form"><div class="form-field"><label for="payment-qr-url">URL de destino del QR</label><input class="field" id="payment-qr-url" type="url" maxlength="2048" value="${escapeHTML(paymentQrUrl)}" placeholder="https://ejemplo.com/video"><p class="form-hint">Pega una URL http o https, como un enlace a un video. El QR se genera en este dispositivo; la aplicación no verifica pagos automáticamente.</p></div>
+        ${paymentQrImageData ? `<div class="payment-qr-preview"><img class="payment-qr-image" src="${escapeHTML(paymentQrImageData)}" alt="Vista previa del QR"><p class="form-hint">El QR abrirá la URL configurada.</p></div>` : paymentQrError ? `<p class="form-error">${escapeHTML(paymentQrError)}</p>` : ""}
+        <button class="button button-primary" type="submit">Guardar QR</button>
+      </form>
+    </section>
+    <section class="panel account-create-panel">
+      <form id="create-employee-form">
+        <div class="form-row"><div class="form-field"><label for="employee-username">Usuario</label><input class="field" id="employee-username" name="usuario" minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]{3,32}" autocomplete="off" required></div>
+        <div class="form-field"><label for="employee-password">Contraseña inicial</label><input class="field" id="employee-password" name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></div></div>
+        <p class="form-hint">La contraseña debe tener 8 caracteres o más. Se permiten hasta tres cuentas de empleados activas.</p>
+        <button class="button button-primary" type="submit">Crear cuenta de empleado</button>
+      </form>
+    </section>
+    <section class="panel table-panel account-list-panel"><header class="panel-header"><div><h2>Cuentas existentes</h2><p>Los empleados pueden registrar ventas, pero no editar el inventario.</p></div><span class="pill" id="active-employee-count">Cargando…</span></header>
+      <div class="table-wrap" id="account-table"><div class="empty-state">Cargando cuentas…</div></div>
+    </section>`;
+}
+
+function loadUsers() {
+  google.script.run
+    .withSuccessHandler((accounts) => {
+      userAccounts = accounts;
+      renderUserRows();
+    })
+    .withFailureHandler((error) => {
+      if (handleSessionError(error.message)) return;
+      showToast(`No se pudieron cargar las cuentas: ${error.message}`, true);
+    })
+    .apiListarCuentas(sessionToken);
+
+  document.getElementById("payment-qr-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const input = document.getElementById("payment-qr-url");
+    const rawUrl = input.value.trim();
+    const qrUrl = normalizeImageUrl(rawUrl);
+    if (rawUrl && !qrUrl) return showToast("La URL de destino del QR debe usar HTTP o HTTPS.", true);
+    const submit = event.currentTarget.querySelector('button[type="submit"]');
+    submit.disabled = true;
+    google.script.run
+      .withSuccessHandler((result) => {
+        submit.disabled = false;
+        if (!result.ok) {
+          if (handleSessionError(result.mensaje)) return;
+          return showToast(result.mensaje || "No se pudo guardar el QR.", true);
+        }
+        configurePaymentQr(result.qrPagoUrl || result.enlacePagoUrl || "");
+        render();
+        showToast(paymentQrUrl ? "QR de pago guardado." : "QR de pago eliminado.");
+      })
+      .withFailureHandler((error) => {
+        submit.disabled = false;
+        if (handleSessionError(error.message)) return;
+        showToast(`No se pudo guardar el QR: ${error.message}`, true);
+      })
+      .apiGuardarQrPago(sessionToken, qrUrl);
+  }, { once: true });
+
+  document.getElementById("create-employee-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const username = document.getElementById("employee-username").value.trim();
+    const password = document.getElementById("employee-password").value;
+    const submit = form.querySelector('button[type="submit"]');
+    submit.disabled = true;
+    google.script.run
+      .withSuccessHandler((result) => {
+        submit.disabled = false;
+        if (!result.ok) {
+          if (handleSessionError(result.mensaje)) return;
+          return showToast(result.mensaje, true);
+        }
+        userAccounts = result.cuentas;
+        form.reset();
+        renderUserRows();
+        showToast(`Cuenta ${username} creada.`);
+      })
+      .withFailureHandler((error) => {
+        submit.disabled = false;
+        if (handleSessionError(error.message)) return;
+        showToast(`No se pudo crear la cuenta: ${error.message}`, true);
+      })
+      .apiCrearCuentaEmpleado(sessionToken, username, password);
+  }, { once: true });
+
+  document.getElementById("account-table").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-account-action]");
+    if (!button) return;
+    const username = button.dataset.username;
+    if (button.dataset.accountAction === "toggle-account") {
+      updateEmployeeStatus(username, button.dataset.active !== "true");
+    } else if (button.dataset.accountAction === "reset-password") {
+      resetEmployeePasswordForm(username);
+    } else if (button.dataset.accountAction === "delete-account") {
+      confirmDeleteEmployee(username);
+    }
+  });
+}
+
+function renderUserRows() {
+  const activeCount = userAccounts.filter((user) => user.rol === "EMPLEADO" && user.activo).length;
+  document.getElementById("active-employee-count").textContent = `${activeCount}/3 activos`;
+  const rows = userAccounts.map((user) => {
+    const isEmployee = user.rol === "EMPLEADO";
+    const roleLabel = isEmployee ? "Empleado" : "Administrador";
+    const actions = isEmployee
+      ? `<div class="row-actions"><button class="row-action" data-account-action="reset-password" data-username="${escapeHTML(user.usuario)}" title="Restablecer contraseña" aria-label="Restablecer contraseña de ${escapeHTML(user.usuario)}">⚿</button><button class="button button-small ${user.activo ? "button-secondary" : "button-primary"}" data-account-action="toggle-account" data-username="${escapeHTML(user.usuario)}" data-active="${user.activo}" type="button">${user.activo ? "Desactivar" : "Activar"}</button><button class="row-action delete" data-account-action="delete-account" data-username="${escapeHTML(user.usuario)}" title="Eliminar cuenta" aria-label="Eliminar cuenta de ${escapeHTML(user.usuario)}">×</button></div>`
+      : '<span class="mono">Cuenta principal</span>';
+    return `<tr><td><strong>${escapeHTML(user.usuario)}</strong></td><td>${roleLabel}</td><td><span class="pill ${user.activo ? "" : "danger"}">${user.activo ? "Activa" : "Inactiva"}</span></td><td class="mono">${escapeHTML(user.creado || "—")}</td><td>${actions}</td></tr>`;
+  }).join("");
+  document.getElementById("account-table").innerHTML = `<table><thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th>Creada</th><th></th></tr></thead><tbody>${rows || emptyTable("Sin cuentas", "No se encontraron cuentas.", "", 5)}</tbody></table>`;
+}
+
+function confirmDeleteEmployee(username) {
+  openModal("Eliminar cuenta de empleado", `<p>¿Eliminar permanentemente la cuenta <strong>${escapeHTML(username)}</strong>? Ya no podrá iniciar sesión y sus sesiones activas dejarán de funcionar.</p>
+    <p class="form-hint">El historial de ventas se conserva. Esta acción no se puede deshacer.</p>
+    <div class="form-actions"><button class="button button-secondary" type="button" data-action="close-modal">Cancelar</button><button class="button button-danger" id="confirm-delete-employee" type="button">Eliminar cuenta</button></div>`);
+  document.getElementById("confirm-delete-employee").addEventListener("click", (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    google.script.run
+      .withSuccessHandler((result) => {
+        if (!result.ok) {
+          button.disabled = false;
+          if (handleSessionError(result.mensaje)) return;
+          return showToast(result.mensaje, true);
+        }
+        userAccounts = result.cuentas;
+        closeModal();
+        renderUserRows();
+        showToast(`Cuenta ${username} eliminada.`);
+      })
+      .withFailureHandler((error) => {
+        button.disabled = false;
+        if (handleSessionError(error.message)) return;
+        showToast(`No se pudo eliminar la cuenta: ${error.message}`, true);
+      })
+      .apiEliminarCuentaEmpleado(sessionToken, username);
+  });
+}
+
+function updateEmployeeStatus(username, active) {
+  google.script.run
+    .withSuccessHandler((result) => {
+      if (!result.ok) {
+        if (handleSessionError(result.mensaje)) return;
+        return showToast(result.mensaje, true);
+      }
+      userAccounts = result.cuentas;
+      renderUserRows();
+      showToast(active ? `Cuenta ${username} activada.` : `Cuenta ${username} desactivada.`);
+    })
+    .withFailureHandler((error) => {
+      if (handleSessionError(error.message)) return;
+      showToast(`No se pudo actualizar la cuenta: ${error.message}`, true);
+    })
+    .apiCambiarEstadoCuentaEmpleado(sessionToken, username, active);
+}
+
+function resetEmployeePasswordForm(username) {
+  openModal(`Restablecer contraseña`, `<form id="reset-employee-password-form">
+    <p class="form-hint">Asigna una contraseña temporal de al menos 8 caracteres para <strong>${escapeHTML(username)}</strong>.</p>
+    <div class="form-field"><label for="reset-employee-password">Nueva contraseña</label><input class="field" id="reset-employee-password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></div>
+    <div class="form-actions"><button class="button button-secondary" type="button" data-action="close-modal">Cancelar</button><button class="button button-primary" type="submit">Guardar contraseña</button></div>
+  </form>`);
+  document.getElementById("reset-employee-password-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const password = document.getElementById("reset-employee-password").value;
+    const submit = event.currentTarget.querySelector('button[type="submit"]');
+    submit.disabled = true;
+    google.script.run
+      .withSuccessHandler((result) => {
+        submit.disabled = false;
+        if (!result.ok) {
+          if (handleSessionError(result.mensaje)) return;
+          return showToast(result.mensaje, true);
+        }
+        closeModal();
+        showToast(`Contraseña de ${username} restablecida.`);
+      })
+      .withFailureHandler((error) => {
+        submit.disabled = false;
+        if (handleSessionError(error.message)) return;
+        showToast(`No se pudo restablecer la contraseña: ${error.message}`, true);
+      })
+      .apiRestablecerClaveEmpleado(sessionToken, username, password);
+  });
 }
 
 function openModal(title, content, eyebrow = "ALMACÉN") {
@@ -1058,12 +3842,36 @@ function productForm(product = null) {
   const categoryOptions = almacen.categorias.map((category) => `<option value="${escapeHTML(category.nombre)}" ${product?.categoria === category.nombre ? "selected" : ""}>${escapeHTML(category.nombre)}</option>`).join("");
   openModal(editing ? "Editar producto" : "Nuevo producto", `<form id="product-form">
     <div class="form-field"><label for="product-name">Nombre</label><input class="field" id="product-name" name="nombre" maxlength="70" value="${escapeHTML(product?.nombre || "")}" placeholder="Ej. Singani Casa Real" required></div>
+    <div class="form-field"><label for="product-image">URL de imagen (opcional)</label><input class="field" id="product-image" name="imagen" type="url" maxlength="2048" value="${escapeHTML(product?.imagen || "")}" placeholder="https://ejemplo.com/imagen.jpg"><p class="form-hint">Usa un enlace público directo a la imagen.</p><div class="product-image-preview" id="product-image-preview" hidden><img id="product-image-preview-img" alt="Vista previa del producto"></div><p class="form-error" id="product-image-error" hidden>Ingresa una URL http o https válida.</p></div>
     <div class="form-row"><div class="form-field"><label for="product-category">Categoría</label><select class="select-field" id="product-category" name="categoria" ${editing ? "disabled" : ""}>${categoryOptions}</select></div><div class="form-field"><label for="product-price">Precio (Bs)</label><input class="field" id="product-price" name="precio" type="number" min="0" step="0.01" value="${product?.precio ?? ""}" required></div></div>
     <div class="form-row"><div class="form-field"><label for="product-stock">Stock actual</label><input class="field" id="product-stock" name="stock" type="number" min="0" step="1" value="${product?.stock ?? 0}" required></div><div class="form-field"><label for="product-portions">Porciones por unidad</label><input class="field" id="product-portions" name="porciones" type="number" min="0" step="1" value="${product?.porciones ?? 0}" required></div></div>
     <div class="form-field"><label for="product-glass-price">Precio por vaso (Bs)</label><input class="field" id="product-glass-price" name="precioVaso" type="number" min="0" step="0.01" value="${product?.precioVaso ?? 0}" required></div>
     ${editing ? `<p class="form-hint">ID ${escapeHTML(product.id)} · La categoría y el ID no se modifican.</p>` : '<p class="form-hint">El ID se asigna automáticamente según el prefijo de categoría.</p>'}
     <div class="form-actions"><button class="button button-secondary" type="button" data-action="close-modal">Cancelar</button><button class="button button-primary" type="submit">${editing ? "Guardar cambios" : "Crear producto"}</button></div>
   </form>`);
+  const imageInput = document.getElementById("product-image");
+  const preview = document.getElementById("product-image-preview");
+  const previewImage = document.getElementById("product-image-preview-img");
+  const imageError = document.getElementById("product-image-error");
+  const updateImagePreview = () => {
+    const rawUrl = imageInput.value.trim();
+    const imageUrl = normalizeImageUrl(rawUrl);
+    imageError.hidden = !rawUrl || Boolean(imageUrl);
+    preview.hidden = !imageUrl;
+    previewImage.onerror = () => {
+      preview.hidden = true;
+      imageError.hidden = false;
+      imageError.textContent = "No se pudo cargar la imagen desde esa URL.";
+    };
+    if (imageUrl) previewImage.src = imageUrl;
+    else previewImage.removeAttribute("src");
+  };
+  imageInput.addEventListener("input", updateImagePreview);
+  previewImage.addEventListener("load", () => {
+    imageError.hidden = true;
+    preview.hidden = false;
+  });
+  updateImagePreview();
   document.getElementById("product-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -1072,12 +3880,18 @@ function productForm(product = null) {
     const stock = Number(form.get("stock"));
     const porciones = Number(form.get("porciones"));
     const precioVaso = Number(form.get("precioVaso"));
+    const imageUrlInput = String(form.get("imagen") || "").trim();
+    const imagen = normalizeImageUrl(imageUrlInput);
+    if (imageUrlInput && !imagen) {
+      showToast("La URL debe ser válida y usar HTTP o HTTPS.", true);
+      return;
+    }
     if (!nombre || [precio, stock, porciones, precioVaso].some((value) => !Number.isFinite(value) || value < 0)) {
       showToast("Revisa los datos: deben ser valores válidos y no negativos.", true);
       return;
     }
     if (editing) {
-      product.modificar(nombre, precio, porciones, precioVaso);
+      product.modificar(nombre, precio, porciones, precioVaso, imagen);
       product.stock = stock;
       product.vasosSueltos = Math.min(product.vasosSueltos, porciones || 0);
       showToast("Producto actualizado.");
@@ -1085,6 +3899,7 @@ function productForm(product = null) {
       const duplicate = almacen.productos.some((item) => item.nombre.toLowerCase() === nombre.toLowerCase());
       if (duplicate) return showToast("Ya existe un producto con ese nombre.", true);
       const created = new Producto(nombre, form.get("categoria"), precio, stock, porciones, precioVaso);
+      created.imagen = imagen;
       if (!almacen.agregarProducto(created)) return showToast("No se pudo crear el producto.", true);
       showToast(`Producto ${created.id} agregado.`);
     }
@@ -1173,28 +3988,58 @@ function confirmAction(title, detail, confirmLabel, action, danger = false) {
   });
 }
 
-function recordSale(type, detail, quantity, total) {
-  salesHistory.unshift({ tipo: type, detalle: detail, cantidad: quantity, total, fecha: new Date().toLocaleString("es-BO", { dateStyle: "short", timeStyle: "short" }) });
+function recordSale(type, detail, quantity, total, metodoPago) {
+  salesHistory.unshift({ tipo: type, detalle: detail, cantidad: quantity, total, metodoPago, fecha: new Date().toLocaleString("es-BO", { dateStyle: "short", timeStyle: "short" }) });
   saveData(); render(); showToast("Venta registrada y stock actualizado.");
 }
 
 function executeSheetSale(method, submitButton, ...args) {
-  submitButton.disabled = true;
+  if (submitButton) submitButton.disabled = true;
   google.script.run
     .withSuccessHandler((result) => {
-      submitButton.disabled = false;
-      if (!result.ok) return showToast(result.mensaje, true);
+      if (submitButton) submitButton.disabled = false;
+      if (!result.ok) {
+        if (handleSessionError(result.mensaje)) return;
+        return showToast(result.mensaje, true);
+      }
       applySheetData(result.datos);
       render();
       showToast(result.mensaje);
     })
     .withFailureHandler((error) => {
-      submitButton.disabled = false;
+      if (submitButton) submitButton.disabled = false;
+      if (handleSessionError(error.message)) return;
       showToast(`No se pudo registrar la venta: ${error.message}`, true);
-    })[method](...args);
+    })[method](sessionToken, ...args);
 }
 
 function bindSales() {
+  document.querySelectorAll(".sale-panel").forEach(bindPaymentFields);
+
+  const productSelect = document.getElementById("sale-product");
+  const productQuantity = document.getElementById("sale-product-quantity");
+  const updateProductEstimate = () => {
+    const product = almacen.buscarProducto(productSelect.value);
+    const quantity = Number(productQuantity.value) || 0;
+    document.getElementById("product-sale-total").textContent = money((product?.precio || 0) * quantity);
+    document.getElementById("product-sale-hint").textContent = product
+      ? `${product.stock} unidades disponibles · ${money(product.precio)} por unidad`
+      : "Selecciona un producto para ver su precio y stock.";
+  };
+  [productSelect, productQuantity].forEach((element) => element.addEventListener("input", updateProductEstimate));
+  updateProductEstimate();
+  document.getElementById("product-sale-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const payment = getPaymentDetails(event.currentTarget);
+    if (!payment) return;
+    const product = almacen.buscarProducto(productSelect.value);
+    const quantity = Number(productQuantity.value);
+    if (!product || !Number.isInteger(quantity) || quantity <= 0) return showToast("Selecciona un producto y una cantidad válida.", true);
+    if (APPS_SCRIPT_MODE) return executeSheetSale("apiVenderProductoWeb", event.submitter, product.id, quantity, payment.metodoPago, payment.qrConfirmado, payment.qrPagoUrl);
+    if (!product.reducirStock(quantity)) return showToast("No hay stock suficiente para completar la venta.", true);
+    recordSale("Producto", product.nombre, quantity, product.precio * quantity, payment.metodoPago);
+  });
+
   const drinkSelect = document.getElementById("sale-drink");
   const cupSelect = document.getElementById("sale-cup");
   const drinkQuantity = document.getElementById("sale-glass-quantity");
@@ -1210,13 +4055,15 @@ function bindSales() {
   updateGlassEstimate();
   document.getElementById("glass-sale-form").addEventListener("submit", (event) => {
     event.preventDefault();
+    const payment = getPaymentDetails(event.currentTarget);
+    if (!payment) return;
     const drink = almacen.buscarProducto(drinkSelect.value);
     const quantity = Number(drinkQuantity.value);
     const cup = almacen.buscarProducto(cupSelect.value);
     if (!drink || !cup || !Number.isInteger(quantity) || quantity <= 0) return showToast("Selecciona productos y una cantidad válida.", true);
-    if (APPS_SCRIPT_MODE) return executeSheetSale("apiVenderVasoWeb", event.submitter, drink.id, cup.id, quantity);
+    if (APPS_SCRIPT_MODE) return executeSheetSale("apiVenderVasoWeb", event.submitter, drink.id, cup.id, quantity, payment.metodoPago, payment.qrConfirmado, payment.qrPagoUrl);
     if (!almacen.venderVaso(drink.id, quantity, cup.id)) return showToast("No hay stock suficiente para completar la venta.", true);
-    recordSale("vaso", `${drink.nombre} · ${cup.nombre}`, quantity, drink.precioVaso * quantity);
+    recordSale("vaso", `${drink.nombre} · ${cup.nombre}`, quantity, drink.precioVaso * quantity, payment.metodoPago);
   });
 
   const comboSelect = document.getElementById("sale-combo");
@@ -1233,13 +4080,15 @@ function bindSales() {
   updateComboEstimate();
   document.getElementById("combo-sale-form").addEventListener("submit", (event) => {
     event.preventDefault();
+    const payment = getPaymentDetails(event.currentTarget);
+    if (!payment) return;
     const combo = almacen.buscarCombo(comboSelect.value);
     const quantity = Number(comboQuantity.value);
     if (!combo || !Number.isInteger(quantity) || quantity <= 0) return showToast("Selecciona un combo y una cantidad válida.", true);
     const total = combo.precio * quantity;
-    if (APPS_SCRIPT_MODE) return executeSheetSale("apiVenderComboWeb", event.submitter, combo.id, quantity);
+    if (APPS_SCRIPT_MODE) return executeSheetSale("apiVenderComboWeb", event.submitter, combo.id, quantity, payment.metodoPago, payment.qrConfirmado, payment.qrPagoUrl);
     if (!almacen.venderCombo(combo.id, quantity)) return showToast("No hay stock suficiente para completar la venta.", true);
-    recordSale("combo", combo.nombre, quantity, total);
+    recordSale("combo", combo.nombre, quantity, total, payment.metodoPago);
   });
 }
 
@@ -1269,7 +4118,7 @@ function downloadFile(filename, content, type) {
 }
 
 function exportProductsCSV() {
-  const rows = [["ID", "Nombre", "Categoría", "Precio", "Stock", "Porciones", "Precio vaso", "Vasos sueltos"], ...almacen.aFilasProductos()];
+  const rows = [["ID", "Nombre", "Categoría", "Precio", "Stock", "Porciones", "Precio vaso", "Vasos sueltos", "URL imagen"], ...almacen.aFilasProductos()];
   const csv = rows.map((row) => row.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
   downloadFile("productos-almacen.csv", `\uFEFF${csv}`, "text/csv;charset=utf-8");
   showToast("Inventario exportado a CSV.");
@@ -1285,6 +4134,7 @@ document.addEventListener("click", (event) => {
   }
   const actionButton = event.target.closest("[data-action]");
   if (!actionButton) return;
+  if (!isAdministrator()) return;
   const { action, id, name } = actionButton.dataset;
   if (action === "add-product") productForm();
   if (action === "edit-product") productForm(almacen.buscarProducto(id));
@@ -1328,7 +4178,8 @@ document.getElementById("page-content").addEventListener("input", (event) => {
   const filtered = almacen.productos.filter((product) =>
     (!category || product.categoria === category)
     && (!search || `${product.nombre} ${product.id} ${product.categoria}`.toLowerCase().includes(search)));
-  document.getElementById("product-rows").innerHTML = filtered.map((product) => productRow(product, true)).join("") || emptyTable("Sin resultados", "Prueba con otro nombre, ID o categoría.", "", 9);
+  const canEdit = isAdministrator();
+  document.getElementById("product-rows").innerHTML = filtered.map((product) => productRow(product, canEdit)).join("") || emptyTable("Sin resultados", "Prueba con otro nombre, ID o categoría.", "", canEdit ? 9 : 8);
   document.getElementById("product-result-count").textContent = `${filtered.length} ${filtered.length === 1 ? "producto" : "productos"}`;
 });
 
@@ -1345,14 +4196,57 @@ document.addEventListener("keydown", (event) => {
 });
 document.getElementById("mobile-menu").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
 document.getElementById("export-data").addEventListener("click", exportBackup);
+document.getElementById("login-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  login(document.getElementById("login-username").value, document.getElementById("login-password").value);
+});
+document.getElementById("logout-button").addEventListener("click", logout);
+document.getElementById("change-password").addEventListener("click", changeOwnPasswordForm);
+
+function changeOwnPasswordForm() {
+  openModal("Cambiar contraseña", `<form id="change-own-password-form">
+    <div class="form-field"><label for="current-password">Contraseña actual</label><input class="field" id="current-password" type="password" autocomplete="current-password" required></div>
+    <div class="form-field"><label for="new-password">Nueva contraseña</label><input class="field" id="new-password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></div>
+    <p class="form-hint">La contraseña debe tener entre 8 y 128 caracteres.</p>
+    <div class="form-actions"><button class="button button-secondary" type="button" data-action="close-modal">Cancelar</button><button class="button button-primary" type="submit">Actualizar contraseña</button></div>
+  </form>`);
+  document.getElementById("change-own-password-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const currentPassword = document.getElementById("current-password").value;
+    const newPassword = document.getElementById("new-password").value;
+    const submit = event.currentTarget.querySelector('button[type="submit"]');
+    submit.disabled = true;
+    google.script.run
+      .withSuccessHandler((result) => {
+        submit.disabled = false;
+        if (!result.ok) {
+          if (handleSessionError(result.mensaje)) return;
+          return showToast(result.mensaje, true);
+        }
+        closeModal();
+        showToast(result.mensaje);
+        logout();
+      })
+      .withFailureHandler((error) => {
+        submit.disabled = false;
+        if (handleSessionError(error.message)) return;
+        showToast(`No se pudo cambiar la contraseña: ${error.message}`, true);
+      })
+      .apiCambiarClavePropia(sessionToken, currentPassword, newPassword);
+  });
+}
 
 const now = new Date();
 document.getElementById("today-label").textContent = new Intl.DateTimeFormat("es-BO", { weekday: "short", day: "numeric", month: "short", year: "numeric" }).format(now);
 if (APPS_SCRIPT_MODE) {
   document.getElementById("storage-label").textContent = "Conectando con Google Sheets...";
-  loadData();
-  render();
+  showLogin();
 } else {
+  document.getElementById("login-screen").hidden = true;
+  document.getElementById("app-shell").hidden = false;
+  document.getElementById("logout-button").hidden = true;
+  document.getElementById("change-password").hidden = true;
+  document.querySelector('[data-view="usuarios"]').hidden = true;
   loadData();
   saveData();
   render();

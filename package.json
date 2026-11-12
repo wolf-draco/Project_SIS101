@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "devDependencies": {
+    "qrcode-generator": "2.0.4"
+  }
+}

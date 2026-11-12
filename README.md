@@ -27,7 +27,8 @@
 | --- | --- |
 | **Productos** | Registrar productos, categorías, precios y existencias. |
 | **Combos** | Crear combos asociados a productos y consultar cuántos pueden prepararse. |
-| **Ventas** | Registrar ventas por vaso o combo y consultar la actividad. |
+| **Ventas** | Registrar productos por unidad, vasos y combos con efectivo o QR. |
+| **Cuentas** | Administrar el acceso del administrador y hasta tres empleados. |
 | **Respaldo** | Exportar el inventario a CSV o descargar los datos en JSON. |
 
 La aplicación web usa una interfaz oscura con acentos azules. El Dashboard de
@@ -41,8 +42,8 @@ hoja de cálculo.
 
 ## Inicio rápido
 
-Se requiere **Node.js 18 o posterior**. El proyecto no tiene dependencias
-externas ni necesita `npm install`.
+Se requiere **Node.js 18 o posterior**. Antes de abrir la aplicación o generar
+el HTML de Apps Script, instala la dependencia local con `npm ci`.
 
 Abre [`index.html`](./index.html) en un navegador para usar la aplicación.
 También puedes ejecutar la demostración del modelo desde la terminal:
@@ -58,7 +59,7 @@ independientes de los datos de Google Sheets.
 ## Aplicación web
 
 La interfaz permite administrar productos, categorías y combos, registrar
-ventas por vaso o combo, y exportar el inventario. Los archivos principales son
+ventas por unidad, vaso o combo, y exportar el inventario. Los archivos principales son
 [`index.html`](./index.html), [`app.css`](./src/css/app.css),
 [`app.js`](./src/js/app.js) y [`Blu.js`](./src/js/Blu.js).
 
@@ -78,10 +79,50 @@ proyecto de Apps Script vinculado a la hoja de cálculo y guarda los cambios.
 La función `doGet` sirve la aplicación y `google.script.run` se comunica con
 las pestañas de datos.
 
-Para publicar la aplicación web, despliega el proyecto de Apps Script como una
-aplicación web y limita el acceso a tu cuenta o a las personas que deban usar
-el inventario. No habilites acceso anónimo para una hoja con información
-comercial.
+### Cuentas y permisos de la aplicación
+
+La aplicación web usa contraseñas propias de SIS101. Desde **Cuentas**, el
+administrador puede crear, activar, desactivar, restablecer y eliminar cuentas
+de empleados, con un máximo de tres activas. Estas cuentas pueden consultar los
+productos y combos, registrar ventas por unidad, vaso o combo y consultar su
+historial. El administrador puede consultar el historial general, pero no
+registrar ventas. Eliminar una cuenta no borra su historial de ventas. Las
+contraseñas no se guardan en texto plano y las sesiones vencen después de seis
+horas.
+
+En **Cuentas**, el administrador puede guardar una URL de destino para el QR,
+incluido un enlace a un video. La aplicación genera la imagen del QR localmente
+en el navegador. Al seleccionar QR, la pantalla de venta muestra el código y
+exige que el empleado confirme que verificó el pago. La aplicación no comprueba
+transferencias automáticamente. El método elegido queda registrado en la hoja
+`Ventas` y en el historial. Mientras no se configure la URL, las ventas en
+efectivo siguen disponibles. El QR abre la URL configurada; no cambia las
+redirecciones que esta tenga.
+
+Para reducir el tiempo de inicio, las claves nuevas usan 15.000 iteraciones de
+derivación; las cuentas existentes conservan la verificación anterior en su
+primer ingreso correcto y luego se migran automáticamente.
+
+1. Copia el código actualizado de `codigo.gs` y `WebApp.html` al proyecto de
+   Apps Script vinculado a la hoja.
+2. Desde la hoja, abre **Almacén → Cuentas de la aplicación → Configurar
+   administrador inicial**. Define un usuario y una contraseña de al menos
+   8 caracteres. Esta operación debe realizarse con la cuenta propietaria.
+3. Despliega la aplicación web para que se ejecute **como tú**, es decir, como
+   propietario de la hoja. En el alcance de acceso, selecciona una opción que
+   incluya las cuentas Google de los empleados (por ejemplo, cualquier usuario
+   con una cuenta de Google, si está disponible). Así no necesitan acceso
+   directo al archivo de Sheets.
+4. Inicia sesión como administrador, abre **Cuentas** y crea hasta tres
+   empleados con contraseñas iniciales de al menos 8 caracteres. Comparte las
+   credenciales por un canal privado; cada empleado puede cambiar su clave
+   desde la opción **Cambiar contraseña**.
+
+Los empleados no deben recibir permisos para editar la hoja de cálculo. La
+aplicación valida los permisos también en el servidor; ocultar opciones en la
+interfaz no es el control de acceso. Para reemplazar la contraseña del
+administrador, usa **Almacén → Cuentas de la aplicación → Restablecer clave de
+administrador** desde la hoja.
 
 Para aplicar el formato de las hojas, copia también `codigo.gs` y
 `Estilos.html` desde [`apps-script/`](./apps-script). Guarda y recarga la hoja

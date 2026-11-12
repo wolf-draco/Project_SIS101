@@ -1,5 +1,5 @@
 class Producto {
-  constructor(nombre, categoria, precio, stock, porciones, precioVaso) {
+  constructor(nombre, categoria, precio, stock, porciones, precioVaso, imagen = "") {
     this.id = "";
     this.nombre = nombre;
     this.categoria = categoria;
@@ -8,6 +8,7 @@ class Producto {
     this.porciones = porciones;
     this.precioVaso = precioVaso;
     this.vasosSueltos = 0;
+    this.imagen = imagen;
   }
 
   ver() {
@@ -16,11 +17,12 @@ class Producto {
     );
   }
 
-  modificar(nombre, precio, porciones, precioVaso) {
+  modificar(nombre, precio, porciones, precioVaso, imagen = this.imagen) {
     this.nombre = nombre;
     this.precio = precio;
     this.porciones = porciones;
     this.precioVaso = precioVaso;
+    this.imagen = imagen;
   }
 
   aumentarStock(cantidad) {
@@ -88,6 +90,7 @@ class Producto {
       this.porciones,
       this.precioVaso,
       this.vasosSueltos,
+      this.imagen,
     ];
   }
 }

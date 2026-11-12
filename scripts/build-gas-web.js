@@ -6,24 +6,30 @@ const htmlPath = path.join(root, "index.html");
 const cssPath = path.join(root, "src", "css", "app.css");
 const appPath = path.join(root, "src", "js", "app.js");
 const modelPath = path.join(root, "src", "js", "Blu.js");
+const qrCodePath = path.join(root, "node_modules", "qrcode-generator", "dist", "qrcode.js");
 const outputPath = path.join(root, "apps-script", "WebApp.html");
 
 let html = fs.readFileSync(htmlPath, "utf8").replace(/\r\n/g, "\n");
 const css = fs.readFileSync(cssPath, "utf8");
 const app = fs.readFileSync(appPath, "utf8");
 const model = fs.readFileSync(modelPath, "utf8");
+if (!fs.existsSync(qrCodePath)) {
+  throw new Error("Falta qrcode-generator. Ejecuta npm ci antes de generar WebApp.html.");
+}
+const qrCode = fs.readFileSync(qrCodePath, "utf8");
 
 const stylesheetTag = '    <link rel="stylesheet" href="src/css/app.css">';
 const scriptTags = [
   '    <script src="src/js/Blu.js"></script>',
+  '    <script src="node_modules/qrcode-generator/dist/qrcode.js"></script>',
   '    <script src="src/js/app.js"></script>',
 ].join("\n");
 
 if (!html.includes(stylesheetTag) || !html.includes(scriptTags)) {
-  throw new Error("No se encontraron las referencias esperadas a app.css, Blu.js y app.js en index.html.");
+  throw new Error("No se encontraron las referencias esperadas a app.css, Blu.js, qrcode-generator y app.js en index.html.");
 }
 
-html = html.replace(stylesheetTag, `    <style>\n${css}\n    </style>`);
-html = html.replace(scriptTags, `    <script>\n${model}\n    </script>\n    <script>\n${app}\n    </script>`);
+html = html.replace(stylesheetTag, () => `    <style>\n${css}\n    </style>`);
+html = html.replace(scriptTags, () => `    <script>\n${model}\n    </script>\n    <script>\n${qrCode}\n    </script>\n    <script>\n${app}\n    </script>`);
 fs.writeFileSync(outputPath, html, "utf8");
 console.log(`Página de Apps Script generada: ${path.relative(root, outputPath)}`);
